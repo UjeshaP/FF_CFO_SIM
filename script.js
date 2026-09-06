@@ -383,6 +383,14 @@ function makeDecision(decision) {
     }
 
 
+        /*
+       Store the current effects so the consequence
+       screen knows exactly what happened this round.
+    */
+
+    window.currentEffects = effects;
+
+
     // Apply effects
 
     applyEffects(effects);
@@ -552,7 +560,7 @@ function showConsequences(title, summary) {
     }
 
 
-    showScreen("consequence-screen");
+    showScreen("consequence-screen", true);
 
 }
 
@@ -563,18 +571,6 @@ function showConsequences(title, summary) {
 
 function continueSimulation() {
 
-    /*
-       For now, return to the dashboard.
-
-       Later this function will:
-       1. Advance the round
-       2. Generate the next scenario
-       3. Update the scenario text
-       4. Increase difficulty
-       5. Eventually trigger the final CFO report
-    */
-
-
     if (company.round < company.totalRounds) {
 
         company.round++;
@@ -583,6 +579,21 @@ function continueSimulation() {
 
         showScreen("dashboard-screen");
 
+        /*
+           This is a genuine screen transition,
+           so intentionally start the new round at the top.
+        */
+
+        requestAnimationFrame(() => {
+
+            window.scrollTo({
+                top: 0,
+                left: 0,
+                behavior: "auto"
+            });
+
+        });
+
     }
 
     else {
@@ -590,6 +601,16 @@ function continueSimulation() {
         generateFinalReport();
 
         showScreen("results-screen");
+
+        requestAnimationFrame(() => {
+
+            window.scrollTo({
+                top: 0,
+                left: 0,
+                behavior: "auto"
+            });
+
+        });
 
     }
 
@@ -816,10 +837,6 @@ document.addEventListener(
 
     }
 );
-//addition
-document.addEventListener("DOMContentLoaded", function () {
-    updateDashboard();
-});
 
 window.showScreen = showScreen;
 window.makeDecision = makeDecision;
