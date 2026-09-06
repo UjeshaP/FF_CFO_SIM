@@ -788,3 +788,11 @@ document.addEventListener(
 
     }
 );
+//addition
+document.addEventListener("DOMContentLoaded", function () {
+    updateDashboard();
+});
+
+window.showScreen = showScreen;
+window.makeDecision = makeDecision;
+window.continueSimulation = continueSimulation;
