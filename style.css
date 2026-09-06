@@ -1,12 +1,12 @@
 /* =========================================================
    FINANCE FORWARD — CFO SIMULATION
-   Visual system
+   Visual System
    ========================================================= */
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    1. RESET + GLOBAL
-   --------------------------------------------------------- */
+   ========================================================= */
 
 * {
     box-sizing: border-box;
@@ -14,17 +14,23 @@
     padding: 0;
 }
 
+
 :root {
+
     --cream: #f8f4ec;
     --cream-dark: #f1e8d8;
     --card: #f4ead9;
+
     --burgundy: #741d2b;
     --burgundy-dark: #57131f;
     --burgundy-light: #a9656b;
+
     --text: #3d1720;
     --text-dark: #241016;
+
     --muted: #755d5b;
     --line: #dfd3c2;
+
     --white: #fffdf9;
 
     --serif: Georgia, "Times New Roman", serif;
@@ -38,86 +44,132 @@
         0 18px 40px rgba(70, 35, 25, 0.13);
 }
 
+
 html {
     scroll-behavior: auto;
 }
 
+
 body {
+
     min-height: 100vh;
+
     background: var(--cream);
+
     color: var(--text-dark);
+
     font-family: var(--sans);
+
+    overflow-anchor: none;
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    2. GENERAL SCREEN SYSTEM
-   --------------------------------------------------------- */
+   ========================================================= */
 
 .screen {
     display: none;
     min-height: 100vh;
 }
 
+
 .screen.active {
     display: block;
+    animation: fadeUp 0.35s ease;
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    3. TYPOGRAPHY
-   --------------------------------------------------------- */
+   ========================================================= */
 
 h1,
 h2,
 h3 {
+
     font-family: var(--serif);
+
     color: var(--text);
+
 }
+
 
 h2 {
+
     font-size: clamp(44px, 5vw, 70px);
+
     line-height: 1;
+
     letter-spacing: -2px;
+
 }
+
 
 h3 {
+
     font-size: 27px;
+
     line-height: 1.15;
+
 }
 
+
 p {
+
     line-height: 1.6;
+
 }
+
 
 .eyebrow,
 .step-label,
 .section-label {
+
     color: var(--burgundy);
+
     font-family: var(--mono);
+
     font-size: 12px;
+
     font-weight: 700;
+
     letter-spacing: 3px;
+
     text-transform: uppercase;
+
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    4. BUTTONS
-   --------------------------------------------------------- */
+   ========================================================= */
 
 button {
+
     font-family: var(--sans);
+
+    -webkit-tap-highlight-color: transparent;
+
 }
 
+
 .primary-button {
+
     border: none;
+
     border-radius: 40px;
+
     background: var(--burgundy);
+
     color: white;
+
     padding: 16px 30px;
+
     font-size: 16px;
+
     font-weight: 700;
+
     cursor: pointer;
 
     box-shadow:
@@ -127,50 +179,75 @@ button {
         transform 0.2s ease,
         background 0.2s ease,
         box-shadow 0.2s ease;
+
 }
 
+
 .primary-button:hover {
+
     background: var(--burgundy-dark);
+
     transform: translateY(-2px);
 
     box-shadow:
         0 12px 25px rgba(116, 29, 43, 0.25);
+
 }
+
 
 .primary-button:active {
+
     transform: translateY(0);
+
 }
 
+
 .secondary-button {
+
     border: 1px solid var(--burgundy);
+
     border-radius: 40px;
+
     background: transparent;
+
     color: var(--burgundy);
+
     padding: 14px 25px;
+
     font-weight: 700;
+
     cursor: pointer;
 
     transition:
         background 0.2s ease,
         color 0.2s ease;
+
 }
 
+
 .secondary-button:hover {
+
     background: var(--burgundy);
+
     color: white;
+
 }
 
 
 /* =========================================================
-   LANDING PAGE
+   5. LANDING PAGE
    ========================================================= */
 
 #landing-screen {
+
     position: relative;
+
     min-height: 100vh;
 
     display: flex;
+
     justify-content: center;
+
     align-items: center;
 
     overflow: hidden;
@@ -187,16 +264,18 @@ button {
             transparent 35%
         ),
         var(--cream);
+
 }
 
 
-/* subtle decorative glow */
-
 #landing-screen::before {
+
     content: "";
+
     position: absolute;
 
     width: 700px;
+
     height: 700px;
 
     border-radius: 50%;
@@ -209,11 +288,14 @@ button {
         );
 
     pointer-events: none;
+
 }
 
 
 .landing-content {
+
     position: relative;
+
     z-index: 1;
 
     text-align: center;
@@ -221,17 +303,23 @@ button {
     width: min(1100px, 90%);
 
     display: flex;
+
     flex-direction: column;
+
     align-items: center;
+
 }
 
 
 .landing-content .eyebrow {
+
     margin-bottom: 38px;
+
 }
 
 
 .landing-content h1 {
+
     font-family: var(--serif);
 
     font-size: clamp(
@@ -247,10 +335,12 @@ button {
     color: #4e101b;
 
     margin-bottom: 45px;
+
 }
 
 
 .tagline {
+
     font-family: var(--serif);
 
     font-style: italic;
@@ -260,37 +350,50 @@ button {
     font-size: 23px;
 
     margin-bottom: 50px;
+
 }
 
 
 /* =========================================================
-   COMPANY INTRO
+   6. COMPANY INTRO
    ========================================================= */
 
 #company-screen {
+
     padding: 65px 6vw 80px;
+
 }
 
 
 .page-container {
+
     max-width: 1100px;
+
     margin: auto;
+
 }
 
 
 .step-label {
+
     text-align: center;
+
     margin-bottom: 22px;
+
 }
 
 
 .page-container > h2 {
+
     text-align: center;
+
     margin-bottom: 18px;
+
 }
 
 
 .page-description {
+
     max-width: 680px;
 
     margin: 0 auto 55px;
@@ -300,12 +403,12 @@ button {
     color: var(--muted);
 
     font-size: 18px;
+
 }
 
 
-/* Company card */
-
 .company-card {
+
     background: var(--card);
 
     border: 1px solid rgba(120, 90, 60, 0.08);
@@ -317,10 +420,12 @@ button {
     box-shadow: var(--shadow);
 
     margin-bottom: 35px;
+
 }
 
 
 .company-header {
+
     display: flex;
 
     justify-content: space-between;
@@ -328,10 +433,12 @@ button {
     gap: 30px;
 
     margin-bottom: 30px;
+
 }
 
 
 .company-label {
+
     color: var(--burgundy);
 
     font-family: var(--mono);
@@ -341,24 +448,30 @@ button {
     letter-spacing: 2px;
 
     margin-bottom: 8px;
+
 }
 
 
 .company-header h3 {
+
     font-size: 54px;
 
     margin-bottom: 8px;
+
 }
 
 
 .company-header p {
+
     color: var(--muted);
 
     max-width: 500px;
+
 }
 
 
 .difficulty-badge {
+
     align-self: flex-start;
 
     background: var(--burgundy-light);
@@ -374,10 +487,12 @@ button {
     font-weight: 700;
 
     letter-spacing: 1px;
+
 }
 
 
 .company-description {
+
     border-top: 1px solid var(--line);
 
     border-bottom: 1px solid var(--line);
@@ -391,10 +506,12 @@ button {
     grid-template-columns: 1fr 1fr;
 
     gap: 35px;
+
 }
 
 
 .starting-metrics {
+
     display: grid;
 
     grid-template-columns:
@@ -403,41 +520,49 @@ button {
     gap: 20px;
 
     padding-top: 30px;
+
 }
 
 
 .metric {
+
     display: flex;
 
     flex-direction: column;
 
     gap: 8px;
+
 }
 
 
 .metric strong {
+
     color: var(--burgundy);
 
     font-family: var(--mono);
 
     font-size: 23px;
+
 }
 
 
 .metric span {
+
     color: var(--muted);
 
     font-size: 10px;
 
     letter-spacing: 1.5px;
+
 }
 
 
 /* =========================================================
-   GAME HEADER
+   7. GAME HEADER
    ========================================================= */
 
 .game-header {
+
     min-height: 90px;
 
     border-bottom: 1px solid var(--line);
@@ -458,20 +583,25 @@ button {
     top: 0;
 
     z-index: 10;
+
 }
 
 
 .company-identity {
+
     display: flex;
 
     align-items: center;
 
     gap: 12px;
+
 }
 
 
 .company-mark {
+
     width: 45px;
+
     height: 45px;
 
     border-radius: 50%;
@@ -487,35 +617,43 @@ button {
     font-family: var(--serif);
 
     font-size: 24px;
+
 }
 
 
 .company-identity div:last-child {
+
     display: flex;
 
     flex-direction: column;
 
     gap: 3px;
+
 }
 
 
 .company-identity strong {
+
     font-family: var(--serif);
 
     font-size: 18px;
 
     color: var(--text);
+
 }
 
 
 .company-identity span {
+
     color: var(--muted);
 
     font-size: 12px;
+
 }
 
 
 .game-navigation {
+
     display: flex;
 
     gap: 4px;
@@ -525,10 +663,12 @@ button {
     padding: 5px;
 
     border-radius: 30px;
+
 }
 
 
 .nav-item {
+
     border: none;
 
     background: transparent;
@@ -542,19 +682,24 @@ button {
     cursor: pointer;
 
     font-size: 14px;
+
 }
 
 
 .nav-item.active {
+
     background: var(--burgundy);
 
     color: white;
 
-    box-shadow: 0 4px 10px rgba(116, 29, 43, 0.18);
+    box-shadow:
+        0 4px 10px rgba(116, 29, 43, 0.18);
+
 }
 
 
 .round-indicator {
+
     justify-self: end;
 
     display: flex;
@@ -564,10 +709,12 @@ button {
     align-items: flex-end;
 
     gap: 3px;
+
 }
 
 
 .round-indicator strong {
+
     color: var(--burgundy);
 
     font-family: var(--mono);
@@ -575,32 +722,36 @@ button {
     font-size: 12px;
 
     letter-spacing: 1px;
+
 }
 
 
 .round-indicator span {
+
     color: var(--muted);
 
     font-size: 11px;
+
 }
 
 
 /* =========================================================
-   DASHBOARD
+   8. DASHBOARD
    ========================================================= */
 
 .dashboard {
+
     padding: 25px 3vw 50px;
 
     max-width: 1700px;
 
     margin: auto;
+
 }
 
 
-/* KPI cards */
-
 .kpi-grid {
+
     display: grid;
 
     grid-template-columns:
@@ -609,10 +760,12 @@ button {
     gap: 16px;
 
     margin-bottom: 25px;
+
 }
 
 
 .kpi-card {
+
     background: var(--card);
 
     border-radius: 24px;
@@ -630,55 +783,67 @@ button {
     gap: 7px;
 
     box-shadow: var(--shadow);
+
 }
 
 
 .kpi-card.featured {
+
     background: var(--burgundy);
 
     color: white;
+
 }
 
 
 .kpi-card span {
+
     font-size: 11px;
 
     letter-spacing: 1.5px;
 
     color: var(--muted);
+
 }
 
 
 .kpi-card.featured span,
 .kpi-card.featured small {
+
     color: rgba(255, 255, 255, 0.7);
+
 }
 
 
 .kpi-card strong {
+
     font-family: var(--mono);
 
     font-size: 28px;
 
     color: var(--text);
+
 }
 
 
 .kpi-card.featured strong {
+
     color: white;
+
 }
 
 
 .kpi-card small {
+
     color: var(--muted);
 
     font-size: 11px;
+
 }
 
 
-/* Dashboard grid */
-
 .dashboard-grid {
+
     display: grid;
 
     grid-template-columns:
@@ -687,10 +852,12 @@ button {
     gap: 20px;
 
     margin-bottom: 20px;
+
 }
 
 
 .panel {
+
     background: var(--card);
 
     border-radius: 30px;
@@ -698,31 +865,37 @@ button {
     padding: 32px;
 
     box-shadow: var(--shadow);
+
 }
 
 
 .panel-heading {
+
     margin-bottom: 35px;
+
 }
 
 
 .panel-heading h3 {
+
     margin-top: 7px;
+
 }
 
 
-/* Health */
-
 .health-metrics {
+
     display: flex;
 
     flex-direction: column;
 
     gap: 23px;
+
 }
 
 
 .health-row {
+
     display: grid;
 
     grid-template-columns:
@@ -731,17 +904,21 @@ button {
     align-items: center;
 
     gap: 15px;
+
 }
 
 
 .health-row > span {
+
     font-size: 14px;
 
     font-weight: 600;
+
 }
 
 
 .health-row strong {
+
     color: var(--burgundy);
 
     font-family: var(--mono);
@@ -749,10 +926,12 @@ button {
     font-size: 13px;
 
     text-align: right;
+
 }
 
 
 .progress-track {
+
     height: 10px;
 
     border-radius: 10px;
@@ -760,10 +939,12 @@ button {
     background: #e1d7c9;
 
     overflow: hidden;
+
 }
 
 
 .progress-fill {
+
     height: 100%;
 
     border-radius: inherit;
@@ -776,44 +957,50 @@ button {
         );
 
     transition: width 0.5s ease;
+
 }
 
 
-/* Situation */
-
 .situation-panel {
+
     display: flex;
 
     flex-direction: column;
 
     align-items: flex-start;
+
 }
 
 
 .situation-panel h3 {
+
     font-size: 34px;
 
     margin: 18px 0;
+
 }
 
 
 .situation-panel p {
+
     color: var(--muted);
 
     margin-bottom: 15px;
+
 }
 
 
 .situation-panel .primary-button {
+
     margin-top: auto;
 
     align-self: flex-start;
+
 }
 
 
-/* Upcoming */
-
 .upcoming-panel {
+
     background: var(--card);
 
     border-radius: 30px;
@@ -827,26 +1014,38 @@ button {
     align-items: center;
 
     box-shadow: var(--shadow);
+
 }
 
 
 .upcoming-panel h3 {
+
     margin-top: 8px;
 
     font-size: 22px;
+
 }
 
 
 .round-progress {
+
     display: flex;
 
     gap: 7px;
 
     align-items: center;
+
+    flex-wrap: wrap;
+
+    justify-content: flex-end;
+
+    max-width: 260px;
+
 }
 
 
 .round-progress span {
+
     width: 9px;
 
     height: 9px;
@@ -854,31 +1053,48 @@ button {
     border-radius: 50%;
 
     background: #d8cbb9;
+
 }
 
 
-.round-progress span:first-child {
+.round-progress span.completed {
+
     background: var(--burgundy);
+
+}
+
+
+.round-progress span.current {
+
+    background: var(--burgundy-light);
+
+    transform: scale(1.35);
+
 }
 
 
 /* =========================================================
-   SCENARIO SCREEN
+   9. SCENARIO
    ========================================================= */
 
 #scenario-screen {
+
     padding: 55px 5vw 80px;
+
 }
 
 
 .scenario-container {
+
     max-width: 1050px;
 
     margin: auto;
+
 }
 
 
 .scenario-meta {
+
     display: flex;
 
     justify-content: space-between;
@@ -888,10 +1104,12 @@ button {
     padding-bottom: 15px;
 
     margin-bottom: 60px;
+
 }
 
 
 .scenario-meta span {
+
     color: var(--burgundy);
 
     font-family: var(--mono);
@@ -899,35 +1117,41 @@ button {
     font-size: 11px;
 
     letter-spacing: 1.5px;
+
 }
 
 
 .scenario-header {
+
     max-width: 800px;
 
     margin-bottom: 40px;
+
 }
 
 
 .scenario-header h2 {
+
     font-size: clamp(50px, 6vw, 78px);
 
     margin: 15px 0 25px;
+
 }
 
 
 .scenario-header p {
+
     color: var(--muted);
 
     font-size: 19px;
 
     max-width: 700px;
+
 }
 
 
-/* Information panel */
-
 .information-panel {
+
     background: var(--card);
 
     border-radius: 25px;
@@ -944,53 +1168,63 @@ button {
     margin-bottom: 50px;
 
     box-shadow: var(--shadow);
+
 }
 
 
 .information-panel div {
+
     display: flex;
 
     flex-direction: column;
 
     gap: 7px;
+
 }
 
 
 .information-panel span {
+
     color: var(--muted);
 
     font-size: 10px;
 
     letter-spacing: 1.3px;
+
 }
 
 
 .information-panel strong {
+
     color: var(--burgundy);
 
     font-family: var(--mono);
 
     font-size: 23px;
+
 }
 
 
-/* Question */
-
 .question h3 {
+
     margin-bottom: 20px;
+
 }
 
 
 .decision-options {
+
     display: flex;
 
     flex-direction: column;
 
     gap: 13px;
+
 }
 
 
 .decision-card {
+
     width: 100%;
 
     border: 1px solid var(--line);
@@ -1003,7 +1237,8 @@ button {
 
     display: grid;
 
-    grid-template-columns: 50px 1fr;
+    grid-template-columns:
+        50px 1fr;
 
     text-align: left;
 
@@ -1014,10 +1249,12 @@ button {
         box-shadow 0.2s ease,
         border 0.2s ease,
         background 0.2s ease;
+
 }
 
 
 .decision-card:hover {
+
     transform: translateY(-2px);
 
     border-color: var(--burgundy-light);
@@ -1025,10 +1262,12 @@ button {
     background: var(--card);
 
     box-shadow: var(--shadow-hover);
+
 }
 
 
 .option-letter {
+
     width: 35px;
 
     height: 35px;
@@ -1046,10 +1285,12 @@ button {
     font-family: var(--mono);
 
     font-weight: 700;
+
 }
 
 
 .decision-card strong {
+
     display: block;
 
     font-family: var(--serif);
@@ -1059,21 +1300,25 @@ button {
     color: var(--text);
 
     margin-bottom: 6px;
+
 }
 
 
 .decision-card p {
+
     color: var(--muted);
 
     font-size: 14px;
+
 }
 
 
 /* =========================================================
-   CONSEQUENCES
+   10. CONSEQUENCES
    ========================================================= */
 
 #consequence-screen {
+
     display: none;
 
     align-items: center;
@@ -1081,31 +1326,40 @@ button {
     justify-content: center;
 
     padding: 60px 5vw;
+
 }
 
 
 #consequence-screen.active {
+
     display: flex;
+
 }
 
 
 .consequence-container {
+
     max-width: 950px;
 
     width: 100%;
 
     margin: auto;
+
 }
 
 
 .consequence-container > h2 {
-    font-size: clamp(50px, 6vw, 80px);
+
+    font-size:
+        clamp(50px, 6vw, 80px);
 
     margin: 15px 0;
+
 }
 
 
 .consequence-container > p {
+
     color: var(--muted);
 
     font-size: 18px;
@@ -1113,10 +1367,12 @@ button {
     max-width: 650px;
 
     margin-bottom: 45px;
+
 }
 
 
 .impact-grid {
+
     display: grid;
 
     grid-template-columns:
@@ -1125,10 +1381,12 @@ button {
     gap: 15px;
 
     margin-bottom: 40px;
+
 }
 
 
 .impact-card {
+
     background: var(--card);
 
     border-radius: 23px;
@@ -1142,62 +1400,75 @@ button {
     flex-direction: column;
 
     gap: 10px;
+
 }
 
 
 .impact-card span {
+
     font-size: 10px;
 
     letter-spacing: 1.3px;
 
     color: var(--muted);
+
 }
 
 
 .impact-card strong {
+
     font-family: var(--mono);
 
     font-size: 23px;
 
     color: var(--burgundy);
+
 }
 
 
 /* =========================================================
-   RESULTS
+   11. RESULTS
    ========================================================= */
 
 #results-screen {
+
     padding: 65px 5vw 100px;
+
 }
 
 
 .results-container {
+
     max-width: 900px;
 
     margin: auto;
+
 }
 
 
 .results-container > h2 {
+
     margin-top: 15px;
 
-    font-size: clamp(55px, 7vw, 90px);
+    font-size:
+        clamp(55px, 7vw, 90px);
+
 }
 
 
 .results-container > p {
+
     color: var(--muted);
 
     font-size: 19px;
 
     margin: 15px 0 45px;
+
 }
 
 
-/* CFO profile */
-
 .profile-card {
+
     background: var(--burgundy);
 
     color: white;
@@ -1210,10 +1481,12 @@ button {
 
     box-shadow:
         0 15px 35px rgba(116, 29, 43, 0.20);
+
 }
 
 
 .profile-card span {
+
     font-family: var(--mono);
 
     font-size: 11px;
@@ -1221,28 +1494,32 @@ button {
     letter-spacing: 2px;
 
     color: rgba(255, 255, 255, 0.7);
+
 }
 
 
 .profile-card h3 {
+
     color: white;
 
     font-size: 43px;
 
     margin: 13px 0;
+
 }
 
 
 .profile-card p {
+
     color: rgba(255, 255, 255, 0.78);
 
     max-width: 650px;
+
 }
 
 
-/* Final metrics */
-
 .final-metrics {
+
     display: grid;
 
     grid-template-columns:
@@ -1251,10 +1528,12 @@ button {
     gap: 15px;
 
     margin-bottom: 30px;
+
 }
 
 
 .final-metrics div {
+
     background: var(--card);
 
     border-radius: 20px;
@@ -1266,30 +1545,34 @@ button {
     flex-direction: column;
 
     gap: 8px;
+
 }
 
 
 .final-metrics span {
+
     font-size: 10px;
 
     letter-spacing: 1.2px;
 
     color: var(--muted);
+
 }
 
 
 .final-metrics strong {
+
     color: var(--burgundy);
 
     font-family: var(--mono);
 
     font-size: 21px;
+
 }
 
 
-/* Scores */
-
 .score-section {
+
     background: var(--card);
 
     border-radius: 30px;
@@ -1299,50 +1582,61 @@ button {
     margin-bottom: 25px;
 
     box-shadow: var(--shadow);
+
 }
 
 
 .score-section h3 {
+
     margin-bottom: 25px;
+
 }
 
 
 .score-row {
+
     display: grid;
 
-    grid-template-columns: 1fr 50px;
+    grid-template-columns:
+        1fr 50px;
 
     padding: 17px 0;
 
     border-bottom: 1px solid var(--line);
 
     align-items: center;
+
 }
 
 
 .score-row:last-child {
+
     border-bottom: none;
+
 }
 
 
 .score-row span {
+
     font-size: 14px;
+
 }
 
 
 .score-row strong {
+
     color: var(--burgundy);
 
     font-family: var(--mono);
 
     text-align: right;
+
 }
 
 
-/* Development */
-
 .improvement-section,
 .what-if-section {
+
     background: var(--card);
 
     border-radius: 30px;
@@ -1350,113 +1644,104 @@ button {
     padding: 35px;
 
     margin-bottom: 25px;
+
 }
 
 
 .improvement-section h3,
 .what-if-section h3 {
+
     margin: 12px 0;
 
     font-size: 30px;
+
 }
 
 
 .improvement-section p,
 .what-if-section p {
+
     color: var(--muted);
 
     max-width: 700px;
 
     margin-bottom: 20px;
+
 }
 
 
 /* =========================================================
-   ANIMATIONS + SCROLL STABILITY
+   12. ANIMATION
    ========================================================= */
 
 @keyframes fadeUp {
 
     from {
+
         opacity: 0;
-        transform: translateY(8px);
+
+        transform:
+            translateY(8px);
+
     }
 
     to {
+
         opacity: 1;
-        transform: translateY(0);
+
+        transform:
+            translateY(0);
+
     }
 
 }
 
-/*
-   Only animate the screen itself.
 
-   Previously every direct child of an active screen
-   was animated. When the screen changed, this could
-   contribute to visual/layout jumps while the browser
-   was restoring the viewport.
-*/
-
-.screen.active {
-    animation: fadeUp 0.35s ease;
-}
-
-
-/*
-   Prevent buttons from causing unexpected browser
-   scrolling when they receive focus after being clicked.
-*/
-
-button {
-    font-family: var(--sans);
-    -webkit-tap-highlight-color: transparent;
-}
-
-
-/*
-   Keep the viewport position stable during dynamic
-   updates to the simulation.
-*/
-
-html {
-    scroll-behavior: auto;
-}
-
-body {
-    overflow-anchor: none;
-}
 /* =========================================================
-   RESPONSIVE DESIGN
+   13. RESPONSIVE
    ========================================================= */
 
 @media (max-width: 1000px) {
 
     .game-header {
-        grid-template-columns: 1fr auto;
+
+        grid-template-columns:
+            1fr auto;
+
     }
 
     .game-navigation {
+
         display: none;
+
     }
 
     .kpi-grid {
+
         grid-template-columns:
             repeat(2, 1fr);
+
     }
 
     .dashboard-grid {
-        grid-template-columns: 1fr;
+
+        grid-template-columns:
+            1fr;
+
     }
 
     .starting-metrics {
+
         grid-template-columns:
             repeat(2, 1fr);
+
     }
 
     .final-metrics {
+
         grid-template-columns:
             repeat(2, 1fr);
+
     }
 
 }
@@ -1467,94 +1752,165 @@ body {
     #company-screen,
     #scenario-screen,
     #results-screen {
+
         padding-left: 20px;
+
         padding-right: 20px;
+
     }
 
+
     .landing-content h1 {
+
         font-size: 70px;
 
         letter-spacing: -5px;
+
     }
+
 
     .landing-content .eyebrow {
+
         font-size: 9px;
+
         letter-spacing: 2px;
+
     }
+
 
     .tagline {
+
         font-size: 18px;
+
     }
+
 
     .company-card {
+
         padding: 25px;
+
         border-radius: 25px;
+
     }
+
 
     .company-header {
+
         flex-direction: column;
+
     }
+
 
     .company-header h3 {
+
         font-size: 42px;
+
     }
+
 
     .company-description {
-        grid-template-columns: 1fr;
+
+        grid-template-columns:
+            1fr;
+
         gap: 15px;
+
     }
+
 
     .starting-metrics {
+
         grid-template-columns:
             repeat(2, 1fr);
+
     }
+
 
     .kpi-grid {
-        grid-template-columns: 1fr;
+
+        grid-template-columns:
+            1fr;
+
     }
+
 
     .panel {
+
         padding: 24px;
+
     }
+
 
     .health-row {
+
         grid-template-columns:
             90px 1fr 30px;
+
     }
 
+
     .upcoming-panel {
+
         flex-direction: column;
 
         align-items: flex-start;
 
         gap: 25px;
+
     }
+
 
     .information-panel {
-        grid-template-columns: 1fr;
+
+        grid-template-columns:
+            1fr;
+
     }
+
 
     .impact-grid {
+
         grid-template-columns:
             repeat(2, 1fr);
+
     }
+
 
     .final-metrics {
-        grid-template-columns: 1fr;
+
+        grid-template-columns:
+            1fr;
+
     }
+
 
     .profile-card {
+
         padding: 28px;
+
     }
+
 
     .profile-card h3 {
+
         font-size: 32px;
+
     }
 
+
     .scenario-meta {
+
         flex-direction: column;
 
         gap: 8px;
+
+    }
+
+
+    .round-progress {
+
+        justify-content: flex-start;
+
     }
 
 }
