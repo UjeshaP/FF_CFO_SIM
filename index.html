@@ -12,882 +12,788 @@
 
 <body>
 
-    <!-- =====================================================
-         LANDING PAGE
-         ===================================================== -->
+<!-- =====================================================
+     LANDING PAGE
+     ===================================================== -->
 
-    <section id="landing-screen" class="screen active">
+<section id="landing-screen" class="screen active">
 
-        <div class="landing-content">
+    <div class="landing-content">
 
-            <div class="eyebrow">
-                A CFO DECISION SIMULATION
+        <div class="eyebrow">
+            A CFO DECISION SIMULATION
+        </div>
+
+        <h1>
+            FINANCE<br>
+            FORWARD
+        </h1>
+
+        <p class="tagline">
+            Your company. Your choices. Your future.
+        </p>
+
+        <button
+            class="primary-button"
+            onclick="showScreen('company-screen', true)"
+        >
+            Begin
+        </button>
+
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     COMPANY INTRODUCTION
+     ===================================================== -->
+
+<section id="company-screen" class="screen">
+
+    <div class="page-container">
+
+        <div class="step-label">
+            STEP ONE
+        </div>
+
+        <h2>
+            Meet your company
+        </h2>
+
+        <p class="page-description">
+            You have just been appointed Chief Financial Officer
+            of a growing company. The next twelve months will
+            test how you balance growth, profitability, liquidity,
+            risk, and long-term strategy.
+        </p>
+
+
+        <div class="company-card">
+
+            <div class="company-header">
+
+                <div>
+
+                    <div class="company-label">
+                        YOUR COMPANY
+                    </div>
+
+                    <h3>NOVA</h3>
+
+                    <p>
+                        A rapidly growing technology-enabled
+                        consumer business.
+                    </p>
+
+                </div>
+
+                <div class="difficulty-badge">
+                    MODERATE
+                </div>
+
             </div>
 
-            <h1>
-                FINANCE<br>
-                FORWARD
-            </h1>
 
-            <p class="tagline">
-                Your company. Your choices. Your future.
-            </p>
+            <div class="company-description">
 
-            <button
-                class="primary-button"
-                onclick="showScreen('company-screen', true)">
-                Begin
-            </button>
+                <p>
+                    Nova has found strong product-market fit and
+                    is growing quickly. But growth has created
+                    pressure on cash, hiring, operations, and
+                    working capital.
+                </p>
+
+                <p>
+                    The board wants aggressive growth.
+                    Your responsibility is to determine
+                    how much risk the company can actually afford.
+                </p>
+
+            </div>
+
+
+            <div class="starting-metrics">
+
+                <div class="metric">
+                    <strong>$12.4M</strong>
+                    <span>ANNUAL REVENUE</span>
+                </div>
+
+                <div class="metric">
+                    <strong>34%</strong>
+                    <span>GROSS MARGIN</span>
+                </div>
+
+                <div class="metric">
+                    <strong>$2.1M</strong>
+                    <span>CASH</span>
+                </div>
+
+                <div class="metric">
+                    <strong>$1.8M</strong>
+                    <span>DEBT</span>
+                </div>
+
+            </div>
 
         </div>
 
-    </section>
+
+        <button
+            class="primary-button"
+            onclick="startSimulation()"
+        >
+            Take the CFO role →
+        </button>
+
+    </div>
+
+</section>
 
 
-    <!-- =====================================================
-         COMPANY INTRODUCTION
-         ===================================================== -->
+<!-- =====================================================
+     CFO DASHBOARD
+     ===================================================== -->
 
-    <section id="company-screen" class="screen">
+<section id="dashboard-screen" class="screen">
 
-        <div class="page-container">
+    <header class="game-header">
 
-            <div class="step-label">
-                STEP ONE
+        <div class="company-identity">
+
+            <div class="company-mark">
+                N
             </div>
 
-            <h2>
-                Meet your company
-            </h2>
+            <div>
+                <strong>NOVA</strong>
+                <span>Chief Financial Officer</span>
+            </div>
 
-            <p class="page-description">
-                You have just been appointed Chief Financial Officer
-                of a growing company. The next twelve months will
-                test how you balance growth, profitability, liquidity,
-                risk, and long-term strategy.
-            </p>
+        </div>
 
 
-            <div class="company-card">
+        <nav class="game-navigation">
 
-                <div class="company-header">
+            <button
+                class="nav-item active"
+                onclick="showScreen('dashboard-screen')"
+            >
+                Overview
+            </button>
+
+            <button
+                class="nav-item"
+                onclick="showFinancialSummary()"
+            >
+                Financials
+            </button>
+
+            <button
+                class="nav-item"
+                onclick="showStrategySummary()"
+            >
+                Strategy
+            </button>
+
+            <button
+                class="nav-item"
+                onclick="showRiskSummary()"
+            >
+                Risk
+            </button>
+
+        </nav>
+
+
+        <div class="round-indicator">
+
+            <strong id="round-indicator">
+                ROUND 01 / 15
+            </strong>
+
+            <span id="round-subtitle">
+                Year 1 · Q1
+            </span>
+
+        </div>
+
+    </header>
+
+
+    <main class="dashboard">
+
+        <!-- Financial KPI row -->
+
+        <section class="kpi-grid">
+
+            <div class="kpi-card featured">
+
+                <span>CASH</span>
+
+                <strong id="cash-value">
+                    $2.1M
+                </strong>
+
+                <small>
+                    Available liquidity
+                </small>
+
+            </div>
+
+
+            <div class="kpi-card">
+
+                <span>REVENUE</span>
+
+                <strong id="revenue-value">
+                    $12.4M
+                </strong>
+
+                <small>
+                    Annualized
+                </small>
+
+            </div>
+
+
+            <div class="kpi-card">
+
+                <span>GROSS MARGIN</span>
+
+                <strong id="margin-value">
+                    34%
+                </strong>
+
+                <small>
+                    Current
+                </small>
+
+            </div>
+
+
+            <div class="kpi-card">
+
+                <span>DEBT</span>
+
+                <strong id="debt-value">
+                    $1.8M
+                </strong>
+
+                <small>
+                    Outstanding
+                </small>
+
+            </div>
+
+        </section>
+
+
+        <!-- Main dashboard -->
+
+        <div class="dashboard-grid">
+
+
+            <!-- Financial health -->
+
+            <section class="panel financial-health">
+
+                <div class="panel-heading">
 
                     <div>
-                        <div class="company-label">
-                            YOUR COMPANY
+
+                        <span class="section-label">
+                            COMPANY HEALTH
+                        </span>
+
+                        <h3>
+                            Your financial position
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div class="health-metrics">
+
+                    <div class="health-row">
+
+                        <span>
+                            Liquidity
+                        </span>
+
+                        <div class="progress-track">
+
+                            <div
+                                id="liquidity-bar"
+                                class="progress-fill"
+                            ></div>
+
                         </div>
 
-                        <h3>NOVA</h3>
+                        <strong id="liquidity-value">
+                            68
+                        </strong>
 
-                        <p>
-                            A rapidly growing technology-enabled
-                            consumer business.
-                        </p>
                     </div>
 
-                    <div class="difficulty-badge">
-                        MODERATE
+
+                    <div class="health-row">
+
+                        <span>
+                            Profitability
+                        </span>
+
+                        <div class="progress-track">
+
+                            <div
+                                id="profitability-bar"
+                                class="progress-fill"
+                            ></div>
+
+                        </div>
+
+                        <strong id="profitability-value">
+                            61
+                        </strong>
+
                     </div>
 
-                </div>
 
+                    <div class="health-row">
 
-                <div class="company-description">
+                        <span>
+                            Growth
+                        </span>
 
-                    <p>
-                        Nova has found strong product-market fit and
-                        is growing quickly. But growth has created
-                        pressure on cash, hiring, operations, and
-                        working capital.
-                    </p>
+                        <div class="progress-track">
 
-                    <p>
-                        The board wants aggressive growth.
-                        Your responsibility is to determine
-                        how much risk the company can actually afford.
-                    </p>
+                            <div
+                                id="growth-bar"
+                                class="progress-fill"
+                            ></div>
 
-                </div>
+                        </div>
 
+                        <strong id="growth-value">
+                            82
+                        </strong>
 
-                <div class="starting-metrics">
-
-                    <div class="metric">
-                        <strong>$12.4M</strong>
-                        <span>ANNUAL REVENUE</span>
                     </div>
 
-                    <div class="metric">
-                        <strong>34%</strong>
-                        <span>GROSS MARGIN</span>
+
+                    <div class="health-row">
+
+                        <span>
+                            Risk exposure
+                        </span>
+
+                        <div class="progress-track">
+
+                            <div
+                                id="risk-bar"
+                                class="progress-fill"
+                            ></div>
+
+                        </div>
+
+                        <strong id="risk-value">
+                            38
+                        </strong>
+
                     </div>
-
-                    <div class="metric">
-                        <strong>$2.1M</strong>
-                        <span>CASH</span>
-                    </div>
-
-                    <div class="metric">
-                        <strong>$1.8M</strong>
-                        <span>DEBT</span>
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <button
-                class="primary-button"
-                onclick="showScreen('dashboard-screen')">
-                Take the CFO role →
-            </button>
-
-        </div>
-
-    </section>
-
-
-    <!-- =====================================================
-         CFO DASHBOARD
-         ===================================================== -->
-
-    <section id="dashboard-screen" class="screen">
-
-        <header class="game-header">
-
-            <div class="company-identity">
-
-                <div class="company-mark">
-                    N
-                </div>
-
-                <div>
-                    <strong>NOVA</strong>
-                    <span>Chief Financial Officer</span>
-                </div>
-
-            </div>
-
-
-            <nav class="game-navigation">
-
-                <button class="nav-item active">
-                    Overview
-                </button>
-
-                <button class="nav-item">
-                    Financials
-                </button>
-
-                <button class="nav-item">
-                    Strategy
-                </button>
-
-                <button class="nav-item">
-                    Risk
-                </button>
-
-            </nav>
-
-
-            <div class="round-indicator">
-
-                <strong>ROUND 01 / 15</strong>
-
-                <span>
-                    Year 1 · Q1
-                </span>
-
-            </div>
-
-        </header>
-
-
-        <main class="dashboard">
-
-            <!-- Financial KPI row -->
-
-            <section class="kpi-grid">
-
-                <div class="kpi-card featured">
-
-                    <span>CASH</span>
-
-                    <strong id="cash-value">
-                        $2.1M
-                    </strong>
-
-                    <small>
-                        Available liquidity
-                    </small>
-
-                </div>
-
-
-                <div class="kpi-card">
-
-                    <span>REVENUE</span>
-
-                    <strong id="revenue-value">
-                        $12.4M
-                    </strong>
-
-                    <small>
-                        Annualized
-                    </small>
-
-                </div>
-
-
-                <div class="kpi-card">
-
-                    <span>GROSS MARGIN</span>
-
-                    <strong id="margin-value">
-                        34%
-                    </strong>
-
-                    <small>
-                        Current
-                    </small>
-
-                </div>
-
-
-                <div class="kpi-card">
-
-                    <span>DEBT</span>
-
-                    <strong id="debt-value">
-                        $1.8M
-                    </strong>
-
-                    <small>
-                        Outstanding
-                    </small>
 
                 </div>
 
             </section>
 
 
-            <!-- Main dashboard -->
+            <!-- Current situation -->
 
-            <div class="dashboard-grid">
-
-
-                <!-- Financial health -->
-
-                <section class="panel financial-health">
-
-                    <div class="panel-heading">
-
-                        <div>
-                            <span class="section-label">
-                                COMPANY HEALTH
-                            </span>
-
-                            <h3>
-                                Your financial position
-                            </h3>
-                        </div>
-
-                    </div>
-
-
-                    <div class="health-metrics">
-
-                        <div class="health-row">
-
-                            <span>
-                                Liquidity
-                            </span>
-
-                            <div class="progress-track">
-                                <div
-                                    id="liquidity-bar"
-                                    class="progress-fill"
-                                    style="width: 68%">
-                                </div>
-                            </div>
-
-                            <strong>
-                                68
-                            </strong>
-
-                        </div>
-
-
-                        <div class="health-row">
-
-                            <span>
-                                Profitability
-                            </span>
-
-                            <div class="progress-track">
-                                <div
-                                    id="profitability-bar"
-                                    class="progress-fill"
-                                    style="width: 61%">
-                                </div>
-                            </div>
-
-                            <strong>
-                                61
-                            </strong>
-
-                        </div>
-
-
-                        <div class="health-row">
-
-                            <span>
-                                Growth
-                            </span>
-
-                            <div class="progress-track">
-                                <div
-                                    id="growth-bar"
-                                    class="progress-fill"
-                                    style="width: 82%">
-                                </div>
-                            </div>
-
-                            <strong>
-                                82
-                            </strong>
-
-                        </div>
-
-
-                        <div class="health-row">
-
-                            <span>
-                                Risk
-                            </span>
-
-                            <div class="progress-track">
-                                <div
-                                    id="risk-bar"
-                                    class="progress-fill"
-                                    style="width: 38%">
-                                </div>
-                            </div>
-
-                            <strong>
-                                38
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-
-                <!-- Current situation -->
-
-                <section class="panel situation-panel">
-
-                    <span class="section-label">
-                        CURRENT SITUATION
-                    </span>
-
-                    <h3>
-                        Growth is putting pressure
-                        on your cash.
-                    </h3>
-
-                    <p>
-                        Revenue has grown 31% over the last year,
-                        but the company is spending faster than
-                        cash is coming in.
-                    </p>
-
-                    <p>
-                        Your CEO wants to accelerate growth.
-                        Your controller is warning that liquidity
-                        could become a problem within six months.
-                    </p>
-
-                    <button
-                        class="primary-button"
-                        onclick="showScreen('scenario-screen')">
-                        Review the decision →
-                    </button>
-
-                </section>
-
-            </div>
-
-
-            <!-- Upcoming -->
-
-            <section class="upcoming-panel">
-
-                <div>
-
-                    <span class="section-label">
-                        NEXT
-                    </span>
-
-                    <h3>
-                        A decision is waiting for you.
-                    </h3>
-
-                </div>
-
-                <div class="round-progress">
-
-                    <span>1</span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-
-                </div>
-
-            </section>
-
-        </main>
-
-    </section>
-
-
-    <!-- =====================================================
-         SCENARIO SCREEN
-         ===================================================== -->
-
-    <section id="scenario-screen" class="screen">
-
-        <div class="scenario-container">
-
-            <div class="scenario-meta">
-
-                <span>
-                    ROUND 01 / 15
-                </span>
-
-                <span>
-                    LIQUIDITY · GROWTH
-                </span>
-
-            </div>
-
-
-            <div class="scenario-header">
+            <section class="panel situation-panel">
 
                 <span class="section-label">
-                    THE DECISION
+                    CURRENT SITUATION
                 </span>
 
-                <h2>
-                    How aggressively
-                    will you grow?
-                </h2>
-
-                <p>
-                    Your sales team believes the company can
-                    increase revenue by 20% next year if you
-                    expand the sales team now.
-                </p>
-
-            </div>
-
-
-            <div class="information-panel">
-
-                <div>
-
-                    <span>
-                        REQUIRED INVESTMENT
-                    </span>
-
-                    <strong>
-                        $750K
-                    </strong>
-
-                </div>
-
-                <div>
-
-                    <span>
-                        EXPECTED REVENUE GROWTH
-                    </span>
-
-                    <strong>
-                        +20%
-                    </strong>
-
-                </div>
-
-                <div>
-
-                    <span>
-                        CURRENT CASH
-                    </span>
-
-                    <strong>
-                        $2.1M
-                    </strong>
-
-                </div>
-
-            </div>
-
-
-            <div class="question">
-
-                <h3>
-                    What do you recommend?
+                <h3 id="situation-title">
+                    Growth is putting pressure
+                    on your cash.
                 </h3>
 
+                <p id="situation-text">
+                    Revenue has grown 31% over the last year,
+                    but the company is spending faster than
+                    cash is coming in.
+                </p>
 
-                <div class="decision-options">
+                <p id="situation-advice">
+                    Your CEO wants to accelerate growth.
+                    Your controller is warning that liquidity
+                    could become a problem within six months.
+                </p>
 
+                <button
+                    class="primary-button"
+                    onclick="showScenario()"
+                >
+                    Review the decision →
+                </button>
 
-                    <button
-                        class="decision-card"
-                        onclick="makeDecision('aggressive')">
-
-                        <span class="option-letter">
-                            A
-                        </span>
-
-                        <div>
-
-                            <strong>
-                                Invest aggressively
-                            </strong>
-
-                            <p>
-                                Spend the $750K and build the
-                                sales team immediately.
-                            </p>
-
-                        </div>
-
-                    </button>
-
-
-                    <button
-                        class="decision-card"
-                        onclick="makeDecision('balanced')">
-
-                        <span class="option-letter">
-                            B
-                        </span>
-
-                        <div>
-
-                            <strong>
-                                Take a balanced approach
-                            </strong>
-
-                            <p>
-                                Invest $400K now and evaluate
-                                performance before expanding further.
-                            </p>
-
-                        </div>
-
-                    </button>
-
-
-                    <button
-                        class="decision-card"
-                        onclick="makeDecision('conservative')">
-
-                        <span class="option-letter">
-                            C
-                        </span>
-
-                        <div>
-
-                            <strong>
-                                Protect liquidity
-                            </strong>
-
-                            <p>
-                                Delay the expansion and preserve
-                                cash until demand is more certain.
-                            </p>
-
-                        </div>
-
-                    </button>
-
-
-                </div>
-
-            </div>
+            </section>
 
         </div>
 
-    </section>
+
+        <!-- Upcoming -->
+
+        <section class="upcoming-panel">
+
+            <div>
+
+                <span class="section-label">
+                    NEXT DECISION
+                </span>
+
+                <h3 id="next-decision-title">
+                    Sales expansion
+                </h3>
+
+            </div>
+
+            <div
+                class="round-progress"
+                id="round-progress"
+            ></div>
+
+        </section>
+
+    </main>
+
+</section>
 
 
-    <!-- =====================================================
-         CONSEQUENCE SCREEN
-         ===================================================== -->
+<!-- =====================================================
+     SCENARIO SCREEN
+     ===================================================== -->
 
-    <section id="consequence-screen" class="screen">
+<section id="scenario-screen" class="screen">
 
-        <div class="consequence-container">
+    <div class="scenario-container">
 
-            <span class="section-label">
-                DECISION RECORDED
+        <div class="scenario-meta">
+
+            <span id="scenario-round">
+                ROUND 01 / 15
             </span>
 
-            <h2>
-                Your company is changing.
+            <span id="scenario-category">
+                LIQUIDITY · GROWTH
+            </span>
+
+        </div>
+
+
+        <div class="scenario-header">
+
+            <span class="section-label">
+                THE DECISION
+            </span>
+
+            <h2 id="scenario-title">
+                How aggressively
+                will you grow?
             </h2>
 
-            <p id="consequence-summary">
-                Your decision has changed the company's
-                financial position.
+            <p id="scenario-description">
+                Your sales team believes the company can
+                increase revenue by 20% next year if you
+                expand the sales team now.
             </p>
 
-
-            <div class="impact-grid">
-
-                <div class="impact-card">
-
-                    <span>
-                        CASH
-                    </span>
-
-                    <strong id="cash-impact">
-                        -$400K
-                    </strong>
-
-                </div>
+        </div>
 
 
-                <div class="impact-card">
-
-                    <span>
-                        REVENUE OUTLOOK
-                    </span>
-
-                    <strong id="revenue-impact">
-                        +12%
-                    </strong>
-
-                </div>
+        <div
+            class="information-panel"
+            id="scenario-information"
+        >
+        </div>
 
 
-                <div class="impact-card">
+        <div class="question">
 
-                    <span>
-                        RISK
-                    </span>
+            <h3>
+                What do you recommend?
+            </h3>
 
-                    <strong id="risk-impact">
-                        +4
-                    </strong>
+            <div
+                class="decision-options"
+                id="decision-options"
+            >
+            </div>
 
-                </div>
+        </div>
+
+    </div>
+
+</section>
 
 
-                <div class="impact-card">
+<!-- =====================================================
+     CONSEQUENCE SCREEN
+     ===================================================== -->
 
-                    <span>
-                        STRATEGIC POSITION
-                    </span>
+<section id="consequence-screen" class="screen">
 
-                    <strong id="strategy-impact">
-                        +7
-                    </strong>
+    <div class="consequence-container">
 
-                </div>
+        <span class="section-label">
+            DECISION RECORDED
+        </span>
+
+        <h2 id="consequence-title">
+            Your company is changing.
+        </h2>
+
+        <p id="consequence-summary">
+            Your decision has changed the company's
+            financial position.
+        </p>
+
+
+        <div class="impact-grid">
+
+            <div class="impact-card">
+
+                <span>
+                    CASH
+                </span>
+
+                <strong id="cash-impact">
+                    -$400K
+                </strong>
 
             </div>
 
 
-            <button
-                class="primary-button"
-                onclick="showScreen('dashboard-screen')">
+            <div class="impact-card">
 
-                Continue →
+                <span>
+                    REVENUE OUTLOOK
+                </span>
 
-            </button>
+                <strong id="revenue-impact">
+                    +6%
+                </strong>
+
+            </div>
+
+
+            <div class="impact-card">
+
+                <span>
+                    RISK
+                </span>
+
+                <strong id="risk-impact">
+                    +2
+                </strong>
+
+            </div>
+
+
+            <div class="impact-card">
+
+                <span>
+                    STRATEGIC POSITION
+                </span>
+
+                <strong id="strategy-impact">
+                    +6
+                </strong>
+
+            </div>
 
         </div>
 
-    </section>
+
+        <button
+            class="primary-button"
+            onclick="continueSimulation()"
+        >
+            Continue →
+        </button>
+
+    </div>
+
+</section>
 
 
-    <!-- =====================================================
-         FINAL REPORT
-         ===================================================== -->
+<!-- =====================================================
+     RESULTS
+     ===================================================== -->
 
-    <section id="results-screen" class="screen">
+<section id="results-screen" class="screen">
 
-        <div class="results-container">
+    <div class="results-container">
 
-            <span class="section-label">
-                SIMULATION COMPLETE
+        <span class="section-label">
+            SIMULATION COMPLETE
+        </span>
+
+        <h2>
+            Your CFO report
+        </h2>
+
+        <p>
+            Fifteen decisions.
+            One company.
+            Your strategy.
+        </p>
+
+
+        <div class="profile-card">
+
+            <span>
+                YOUR CFO PROFILE
             </span>
 
-            <h2>
-                Your CFO report
-            </h2>
+            <h3 id="cfo-profile">
+                THE BALANCED STRATEGIST
+            </h3>
+
+            <p id="cfo-description">
+                You consistently balanced growth with
+                financial resilience and demonstrated a
+                willingness to take calculated risks.
+            </p>
+
+        </div>
+
+
+        <div class="final-metrics">
+
+            <div>
+                <span>ENDING CASH</span>
+                <strong id="final-cash">$3.2M</strong>
+            </div>
+
+            <div>
+                <span>REVENUE GROWTH</span>
+                <strong id="final-growth">+47%</strong>
+            </div>
+
+            <div>
+                <span>PROFITABILITY</span>
+                <strong id="final-profitability">74</strong>
+            </div>
+
+            <div>
+                <span>INDEBTEDNESS</span>
+                <strong id="final-debt">Low</strong>
+            </div>
+
+        </div>
+
+
+        <div class="score-section">
+
+            <h3>
+                CFO capabilities
+            </h3>
+
+
+            <div class="score-row">
+                <span>Financial Performance</span>
+                <strong id="score-financial">60</strong>
+            </div>
+
+            <div class="score-row">
+                <span>Liquidity Management</span>
+                <strong id="score-liquidity">60</strong>
+            </div>
+
+            <div class="score-row">
+                <span>Risk Management</span>
+                <strong id="score-risk">60</strong>
+            </div>
+
+            <div class="score-row">
+                <span>Strategic Thinking</span>
+                <strong id="score-strategy">60</strong>
+            </div>
+
+            <div class="score-row">
+                <span>Capital Allocation</span>
+                <strong id="score-capital">60</strong>
+            </div>
+
+            <div class="score-row">
+                <span>Ethical Decision-Making</span>
+                <strong id="score-ethics">60</strong>
+            </div>
+
+        </div>
+
+
+        <section class="improvement-section">
+
+            <span class="section-label">
+                DEVELOPMENT AREAS
+            </span>
+
+            <h3>
+                Where could you improve?
+            </h3>
+
+            <p id="development-text">
+                Your decisions suggest strong strategic
+                thinking, but you sometimes accepted more
+                financial risk than the company's liquidity
+                position could comfortably support.
+            </p>
+
+        </section>
+
+
+        <section class="what-if-section">
+
+            <span class="section-label">
+                WHAT IF?
+            </span>
+
+            <h3>
+                What would have happened differently?
+            </h3>
 
             <p>
-                Fifteen decisions.
-                One company.
-                Your strategy.
+                Your decisions created one possible future
+                for Nova. Compare your strategy against
+                alternative decisions.
             </p>
 
+            <button
+                class="secondary-button"
+                onclick="restartSimulation()"
+            >
+                Run the simulation again →
+            </button>
 
-            <div class="profile-card">
+        </section>
 
-                <span>
-                    YOUR CFO PROFILE
-                </span>
+    </div>
 
-                <h3 id="cfo-profile">
-                    THE BALANCED STRATEGIST
-                </h3>
-
-                <p id="cfo-description">
-                    You consistently balanced growth with
-                    financial resilience and demonstrated a
-                    willingness to take calculated risks.
-                </p>
-
-            </div>
+</section>
 
 
-            <div class="final-metrics">
+<!-- =====================================================
+     JAVASCRIPT
+     ===================================================== -->
 
-                <div>
-                    <span>ENDING CASH</span>
-                    <strong id="final-cash">$3.2M</strong>
-                </div>
-
-                <div>
-                    <span>REVENUE GROWTH</span>
-                    <strong id="final-growth">+47%</strong>
-                </div>
-
-                <div>
-                    <span>PROFITABILITY</span>
-                    <strong id="final-profitability">74</strong>
-                </div>
-
-                <div>
-                    <span>INDEBTEDNESS</span>
-                    <strong id="final-debt">Low</strong>
-                </div>
-
-            </div>
-
-
-            <div class="score-section">
-
-                <h3>
-                    CFO capabilities
-                </h3>
-
-
-                <div class="score-row">
-                    <span>Financial Performance</span>
-                    <strong>87</strong>
-                </div>
-
-                <div class="score-row">
-                    <span>Liquidity Management</span>
-                    <strong>82</strong>
-                </div>
-
-                <div class="score-row">
-                    <span>Risk Management</span>
-                    <strong>91</strong>
-                </div>
-
-                <div class="score-row">
-                    <span>Strategic Thinking</span>
-                    <strong>94</strong>
-                </div>
-
-                <div class="score-row">
-                    <span>Capital Allocation</span>
-                    <strong>78</strong>
-                </div>
-
-                <div class="score-row">
-                    <span>Ethical Decision-Making</span>
-                    <strong>96</strong>
-                </div>
-
-            </div>
-
-
-            <section class="improvement-section">
-
-                <span class="section-label">
-                    DEVELOPMENT AREAS
-                </span>
-
-                <h3>
-                    Where could you improve?
-                </h3>
-
-                <p>
-                    Your decisions suggest strong strategic
-                    thinking, but you sometimes accepted more
-                    financial risk than the company's liquidity
-                    position could comfortably support.
-                </p>
-
-            </section>
-
-
-            <section class="what-if-section">
-
-                <span class="section-label">
-                    WHAT IF?
-                </span>
-
-                <h3>
-                    What would have happened differently?
-                </h3>
-
-                <p>
-                    Explore how alternative decisions could
-                    have changed Nova's financial performance.
-                </p>
-
-                <button class="secondary-button">
-                    Explore What If? →
-                </button>
-
-            </section>
-
-        </div>
-
-    </section>
-
-
-    <!-- =====================================================
-         JAVASCRIPT
-         ===================================================== -->
-
-    <script src="script.js"></script>
+<script src="script.js"></script>
 
 </body>
-
 </html>
