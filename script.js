@@ -41,16 +41,10 @@ const company = {
 
 
 /* ---------------------------------------------------------
-   SCREEN NAVIGATION - updated
+   SCREEN NAVIGATION - updated again
    --------------------------------------------------------- */
 
-function showScreen(screenId) {
-
-    const screens = document.querySelectorAll(".screen");
-
-    screens.forEach(screen => {
-        screen.classList.remove("active");
-    });
+function showScreen(screenId, preserveScroll = false) {
 
     const target = document.getElementById(screenId);
 
@@ -59,9 +53,51 @@ function showScreen(screenId) {
         return;
     }
 
-    target.classList.add("active");
-}
+    /*
+       Remember where the user currently is.
 
+       This is important when a decision updates content
+       while the user is already partway down the page.
+    */
+    const currentScroll = window.scrollY;
+
+
+    const screens = document.querySelectorAll(".screen");
+
+    screens.forEach(screen => {
+        screen.classList.remove("active");
+    });
+
+
+    target.classList.add("active");
+
+
+    /*
+       If this is a dynamic update, restore the exact
+       viewport position after the DOM has updated.
+
+       Example:
+       User is at 850px down the page
+       → clicks something
+       → dashboard updates
+       → remains around 850px instead of jumping to 0.
+    */
+
+    if (preserveScroll) {
+
+        requestAnimationFrame(() => {
+
+            window.scrollTo({
+                top: currentScroll,
+                left: 0,
+                behavior: "auto"
+            });
+
+        });
+
+    }
+
+}
 
 /* ---------------------------------------------------------
    UPDATE DASHBOARD
