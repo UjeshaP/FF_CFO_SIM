@@ -41,33 +41,25 @@ const company = {
 
 
 /* ---------------------------------------------------------
-   SCREEN NAVIGATION
+   SCREEN NAVIGATION - updated
    --------------------------------------------------------- */
 
 function showScreen(screenId) {
 
-    // Hide every screen
     const screens = document.querySelectorAll(".screen");
 
     screens.forEach(screen => {
         screen.classList.remove("active");
     });
 
-
-    // Show requested screen
     const target = document.getElementById(screenId);
 
-    if (target) {
-        target.classList.add("active");
+    if (!target) {
+        console.error("Screen not found:", screenId);
+        return;
     }
 
-
-    // Scroll back to top
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
-
+    target.classList.add("active");
 }
 
 
