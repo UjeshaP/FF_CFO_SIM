@@ -796,3 +796,6 @@ document.addEventListener("DOMContentLoaded", function () {
 window.showScreen = showScreen;
 window.makeDecision = makeDecision;
 window.continueSimulation = continueSimulation;
+
+console.log("FINANCE FORWARD JS LOADED");
+console.log("showScreen exists:", typeof showScreen);
