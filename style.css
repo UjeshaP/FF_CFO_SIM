@@ -1372,7 +1372,7 @@ button {
 
 
 /* =========================================================
-   ANIMATIONS
+   ANIMATIONS + SCROLL STABILITY
    ========================================================= */
 
 @keyframes fadeUp {
@@ -1389,12 +1389,43 @@ button {
 
 }
 
+/*
+   Only animate the screen itself.
 
-.screen.active > * {
-    animation: fadeUp 0.5s ease;
+   Previously every direct child of an active screen
+   was animated. When the screen changed, this could
+   contribute to visual/layout jumps while the browser
+   was restoring the viewport.
+*/
+
+.screen.active {
+    animation: fadeUp 0.35s ease;
 }
 
 
+/*
+   Prevent buttons from causing unexpected browser
+   scrolling when they receive focus after being clicked.
+*/
+
+button {
+    font-family: var(--sans);
+    -webkit-tap-highlight-color: transparent;
+}
+
+
+/*
+   Keep the viewport position stable during dynamic
+   updates to the simulation.
+*/
+
+html {
+    scroll-behavior: auto;
+}
+
+body {
+    overflow-anchor: none;
+}
 /* =========================================================
    RESPONSIVE DESIGN
    ========================================================= */
