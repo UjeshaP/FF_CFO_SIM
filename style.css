@@ -71,12 +71,14 @@ body {
 .screen {
     display: none;
     min-height: 100vh;
+    opacity: 0;
+    visibility: hidden;
 }
-
 
 .screen.active {
     display: block;
-    animation: fadeUp 0.35s ease;
+    opacity: 1;
+    visibility: visible;
 }
 
 
