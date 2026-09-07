@@ -1916,3 +1916,14 @@ button {
     }
 
 }
+/* =====================================================
+   SCREEN VISIBILITY
+   ===================================================== */
+
+.screen-hidden {
+    display: none !important;
+}
+
+.screen.active {
+    display: block;
+}
