@@ -6279,4 +6279,564 @@ console.log(
 
     window.showDashboardOverview = showDashboardOverview;
 
+    /* =========================================================
+       FINANCIAL REALISM UPGRADE LAYER
+       ========================================================= */
+
+
+    "use strict";
+
+    const priorStart = window.startSimulation;
+    const priorRestart = window.restartSimulation;
+    const priorMakeDecision = window.makeDecision;
+    const priorShowScenario = window.showScenario;
+    const priorGenerateFinalReport = window.generateFinalReport;
+
+    const UPGRADE_BASE = {
+        cash: 6.0,
+        revenue: 12.4,
+        grossMargin: 34.0,
+        debt: 1.8,
+        dso: 42,
+        ebitdaMargin: 8.0,
+        strategicPosition: 50,
+        longTermValue: 50,
+        capitalEfficiency: 60,
+        growthAppetite: 50,
+        strategicAggression: 50,
+        longTermOrientation: 50,
+        liquidityRisk: 28,
+        leverageRisk: 22,
+        operationalRisk: 25,
+        executionRisk: 25,
+        cyberRisk: 18,
+        riskManagement: 60,
+        interestRate: 5.0,
+        employeeCapacity: 100,
+        customerRetention: 100,
+        technicalDebt: 40,
+        marketShare: 18,
+        shareCount: 100
+    };
+
+    let U = null;
+    let history = [];
+    let delayed = [];
+    let shocks = {};
+
+    /* -----------------------------------------------------
+       HARD FINANCIAL MECHANICS
+       ----------------------------------------------------- */
+
+    const M = {
+        1: {
+            A: { cash:-4.00, revenueGrowth:0, gm:2, ebitda:-4, strategic:9, ltv:10, capEff:2, growth:8, aggression:10, longTerm:10, liquidityRisk:8, executionRisk:5, techDebt:-30, delayed:[{round:3,revenuePct:18,gm:2}] },
+            B: { cash:-0.75, revenueGrowth:0, gm:1, ebitda:2, strategic:-3, ltv:-8, capEff:8, growth:-8, aggression:-7, longTerm:-8, liquidityRisk:-3, technicalDebt:18 },
+            C: { cash:-2.00, revenueGrowth:0, gm:1, ebitda:-1, strategic:7, ltv:8, capEff:10, growth:4, aggression:5, longTerm:9, liquidityRisk:3, executionRisk:-8, techDebt:-15, delayed:[{round:3,revenuePct:10,gm:1}] },
+            D: { cash:0, revenueGrowth:0, gm:2, ebitda:-3, strategic:8, ltv:9, capEff:4, growth:8, aggression:8, longTerm:9, liquidityRisk:-3, sharePct:-9, delayed:[{round:3,revenuePct:18,gm:2}] }
+        },
+        2: {
+            A: { cash:-0.45, revenueGrowth:-2.6, gm:-2.5, ebitda:-3, strategic:2, ltv:2, capEff:-2, growth:1, aggression:1, longTerm:2, liquidityRisk:2, concentration:17 },
+            B: { cash:-0.30, revenueGrowth:-17, gm:2, ebitda:4, strategic:5, ltv:5, capEff:8, growth:-5, aggression:7, longTerm:7, liquidityRisk:7, customerRetention:-18, concentration:-17 },
+            C: { cash:-0.20, revenueGrowth:-1.2, gm:-1.2, ebitda:0.5, strategic:8, ltv:9, capEff:8, growth:4, aggression:5, longTerm:9, liquidityRisk:-2, delayed:[{round:5,revenuePct:12}] },
+            D: { cash:-0.30, revenueGrowth:0, gm:-1, ebitda:-0.5, strategic:7, ltv:8, capEff:5, growth:2, aggression:4, longTerm:8, liquidityRisk:0, customerRetention:-8 }
+        },
+        3: {
+            A: { cash:0, gm:0, ebitda:-0.5, strategic:3, ltv:4, capEff:-5, growth:-1, aggression:-3, longTerm:4, liquidityRisk:-6 },
+            B: { cash:0.12, gm:0, ebitda:0.2, strategic:6, ltv:6, capEff:8, growth:0, aggression:0, longTerm:6, liquidityRisk:-3 },
+            C: { cash:-3.00, gm:0, ebitda:1, strategic:7, ltv:7, capEff:10, growth:0, aggression:5, longTerm:7, liquidityRisk:10, leverageRisk:1, sharePct:-6 },
+            D: { cash:0, gm:0, ebitda:0, strategic:10, ltv:10, capEff:8, growth:4, aggression:7, longTerm:10, liquidityRisk:-2 }
+        },
+        4: {
+            A: { cash:1.10, revenueGrowth:-4, gm:1, ebitda:3, strategic:4, ltv:5, capEff:8, growth:-4, aggression:4, longTerm:5, liquidityRisk:-12, dso:-43, customerRetention:-6 },
+            B: { cash:1.44, revenueGrowth:0, gm:-3, ebitda:-1, strategic:7, ltv:4, capEff:5, growth:3, aggression:4, longTerm:4, liquidityRisk:-10, dso:-43 },
+            C: { cash:1.50, revenueGrowth:0, gm:0, ebitda:-2, strategic:6, ltv:3, capEff:4, growth:2, aggression:6, longTerm:3, liquidityRisk:-8, leverageRisk:8, debt:1.50, dso:0 },
+            D: { cash:0.90, revenueGrowth:0, gm:-2.5, ebitda:-1, strategic:7, ltv:6, capEff:7, growth:2, aggression:3, longTerm:6, liquidityRisk:-9, dso:-47 }
+        },
+        5: {
+            A: { cash:0, gm:6, ebitda:4, strategic:7, ltv:8, capEff:7, growth:5, aggression:5, longTerm:8, liquidityRisk:3, executionRisk:4, cloudCommit:1 },
+            B: { cash:-5, gm:10, ebitda:-3, strategic:10, ltv:10, capEff:4, growth:6, aggression:10, longTerm:10, liquidityRisk:12, executionRisk:12, delayed:[{round:8,gm:4,ebitda:4}] },
+            C: { cash:0, revenueGrowth:7, gm:5, ebitda:6, strategic:7, ltv:7, capEff:7, growth:5, aggression:6, longTerm:7, liquidityRisk:-2, customerRetention:-4 },
+            D: { cash:0, revenueGrowth:-3, gm:7, ebitda:5, strategic:6, ltv:5, capEff:8, growth:-3, aggression:1, longTerm:5, liquidityRisk:-3, customerRetention:-12 }
+        },
+        6: {
+            A: { cash:-0.60, gm:0, ebitda:8, strategic:5, ltv:3, capEff:8, growth:-5, aggression:5, longTerm:3, liquidityRisk:-8, operationalRisk:-5, employeeCapacity:-15 },
+            B: { cash:-2, gm:0, ebitda:-4, strategic:8, ltv:8, capEff:2, growth:5, aggression:8, longTerm:10, liquidityRisk:10, operationalRisk:5, employeeCapacity:0 },
+            C: { cash:-0.90, gm:0, ebitda:3, strategic:8, ltv:7, capEff:9, growth:-2, aggression:3, longTerm:7, liquidityRisk:-4, operationalRisk:-2, employeeCapacity:-3 },
+            D: { cash:-3, debt:0.8, revenueGrowth:8, gm:-1, ebitda:-3, strategic:10, ltv:10, capEff:5, growth:10, aggression:10, longTerm:10, liquidityRisk:15, leverageRisk:10, executionRisk:10, employeeCapacity:8, delayed:[{round:9,revenuePct:15}] }
+        },
+        7: {
+            A: { cash:-5, revenueGrowth:10, gm:-1, ebitda:-2, strategic:9, ltv:9, capEff:4, growth:10, aggression:9, longTerm:9, liquidityRisk:15, executionRisk:8, marketShare:15, delayed:[{round:10,revenuePct:10}] },
+            B: { cash:-0.50, debt:5, revenueGrowth:10, gm:-2, ebitda:-4, strategic:8, ltv:8, capEff:4, growth:10, aggression:10, longTerm:8, liquidityRisk:5, leverageRisk:18, executionRisk:8, marketShare:15, delayed:[{round:10,revenuePct:10}] },
+            C: { cash:-2, revenueGrowth:7, gm:0, ebitda:1, strategic:10, ltv:9, capEff:10, growth:7, aggression:7, longTerm:9, liquidityRisk:5, executionRisk:2, marketShare:10, delayed:[{round:10,revenuePct:7}] },
+            D: { cash:0, gm:0, ebitda:1, strategic:5, ltv:5, capEff:9, growth:-1, aggression:-2, longTerm:5, liquidityRisk:-5, executionRisk:-4 }
+        },
+        8: {
+            A: { cash:0.20, revenueGrowth:7, gm:-1, ebitda:-2, strategic:5, ltv:-3, capEff:5, growth:7, aggression:8, longTerm:-3, liquidityRisk:2, executionRisk:15, operationalRisk:10, customerRetention:-5 },
+            B: { cash:-0.50, revenueGrowth:-4, gm:0, ebitda:-1, strategic:8, ltv:10, capEff:4, growth:-1, aggression:1, longTerm:10, liquidityRisk:3, executionRisk:-12, operationalRisk:-8, customerRetention:5 },
+            C: { cash:0.30, revenueGrowth:-2, gm:0, ebitda:1, strategic:9, ltv:8, capEff:8, growth:1, aggression:4, longTerm:8, liquidityRisk:-1, executionRisk:-7, operationalRisk:-5 },
+            D: { cash:-1.20, revenueGrowth:7, gm:1, ebitda:1, strategic:8, ltv:8, capEff:6, growth:7, aggression:7, longTerm:7, liquidityRisk:4, executionRisk:7, operationalRisk:5, delayed:[{round:10,revenuePct:7}] }
+        },
+        9: {
+            A: { cash:-0.20, gm:0, ebitda:-0.5, strategic:6, ltv:5, capEff:5, growth:0, aggression:2, longTerm:7, liquidityRisk:2, leverageRisk:-6, interestRate:-0.8 },
+            B: { cash:-5, gm:0, ebitda:2, strategic:6, ltv:5, capEff:8, growth:-1, aggression:2, longTerm:5, liquidityRisk:16, leverageRisk:-15, debt:-5, interestRate:-0.5 },
+            C: { cash:0, gm:0, ebitda:-2, strategic:2, ltv:2, capEff:3, growth:0, aggression:1, longTerm:3, liquidityRisk:-2, leverageRisk:6 },
+            D: { cash:-0.25, gm:0, ebitda:-0.5, strategic:6, ltv:5, capEff:6, growth:0, aggression:2, longTerm:6, liquidityRisk:-1, leverageRisk:-5, interestRate:-0.7 }
+        },
+        10: {
+            A: { cash:-2.20, gm:0, ebitda:-4, strategic:4, ltv:4, capEff:3, growth:3, aggression:3, longTerm:5, liquidityRisk:7, operationalRisk:-2, employeeCapacity:4, customerRetention:8 },
+            B: { cash:0, gm:0, ebitda:0, strategic:7, ltv:6, capEff:5, growth:3, aggression:4, longTerm:8, liquidityRisk:0, sharePct:-3, employeeCapacity:8 },
+            C: { cash:-1.00, gm:0, ebitda:-1.5, strategic:7, ltv:5, capEff:6, growth:2, aggression:3, longTerm:7, liquidityRisk:4, employeeCapacity:5 },
+            D: { cash:0, gm:0, ebitda:2, strategic:3, ltv:2, capEff:6, growth:-2, aggression:2, longTerm:2, liquidityRisk:-4, operationalRisk:5, employeeCapacity:-12, customerRetention:-5 }
+        },
+        11: {
+            A: { cash:-4, revenueGrowth:12, gm:-1, ebitda:-2, strategic:7, ltv:7, capEff:4, growth:10, aggression:8, longTerm:7, liquidityRisk:9 },
+            B: { cash:0, revenueGrowth:0, gm:0, ebitda:0, strategic:2, ltv:1, capEff:7, growth:-1, aggression:-1, longTerm:4, liquidityRisk:-2 },
+            C: { cash:-2, revenueGrowth:7, gm:0, ebitda:0, strategic:8, ltv:7, capEff:8, growth:7, aggression:6, longTerm:7, liquidityRisk:5 },
+            D: { cash:-0.50, revenueGrowth:5, gm:-0.5, ebitda:0, strategic:7, ltv:6, capEff:7, growth:5, aggression:6, longTerm:6, liquidityRisk:2, delayed:[{round:12,cash:-1,revenuePct:5}] }
+        },
+        12: {
+            A: { cash:2, revenueGrowth:-7, gm:1, ebitda:8, strategic:4, ltv:3, capEff:7, growth:-7, aggression:3, longTerm:1, liquidityRisk:-10, operationalRisk:2 },
+            B: { cash:-1.5, revenueGrowth:5, gm:0, ebitda:0, strategic:7, ltv:8, capEff:3, growth:6, aggression:7, longTerm:8, liquidityRisk:6 },
+            C: { cash:0, revenueGrowth:7, gm:5, ebitda:6, strategic:7, ltv:6, capEff:7, growth:5, aggression:6, longTerm:6, liquidityRisk:-2, customerRetention:-3 },
+            D: { cash:1.30, revenueGrowth:2, gm:1, ebitda:3, strategic:9, ltv:8, capEff:10, growth:2, aggression:3, longTerm:8, liquidityRisk:-5 }
+        },
+        13: {
+            A: { cash:-2, revenueGrowth:0, gm:-1, ebitda:-2, strategic:8, ltv:8, capEff:4, growth:5, aggression:8, longTerm:8, liquidityRisk:5, executionRisk:6, delayed:[{round:16,revenuePct:10}] },
+            B: { cash:0, revenueGrowth:-8, gm:1, ebitda:2, strategic:4, ltv:3, capEff:7, growth:-8, aggression:-2, longTerm:4, liquidityRisk:-2, marketShare:-8 },
+            C: { cash:-0.50, revenueGrowth:5, gm:-5, ebitda:-3, strategic:7, ltv:6, capEff:5, growth:7, aggression:6, longTerm:6, liquidityRisk:3, customerRetention:4, marketShare:10 },
+            D: { cash:-7, revenueGrowth:5, gm:-1, ebitda:-2, strategic:10, ltv:9, capEff:4, growth:9, aggression:10, longTerm:8, liquidityRisk:18, executionRisk:12, leverageRisk:8, marketShare:15 }
+        },
+        14: {
+            A: { cash:-2.5, revenueGrowth:0, gm:0, ebitda:-2, strategic:9, ltv:10, capEff:5, growth:8, aggression:7, longTerm:10, liquidityRisk:8, executionRisk:6, delayed:[{round:16,revenuePct:6}] },
+            B: { cash:0, revenueGrowth:2, gm:0, ebitda:1, strategic:5, ltv:5, capEff:7, growth:2, aggression:1, longTerm:5, liquidityRisk:-1, delayed:[{round:16,revenuePct:2}] },
+            C: { cash:-0.4, revenueGrowth:4, gm:-1, ebitda:0, strategic:8, ltv:7, capEff:7, growth:5, aggression:4, longTerm:7, liquidityRisk:2, executionRisk:2, delayed:[{round:16,revenuePct:4}] },
+            D: { cash:-5, revenueGrowth:8, gm:-1, ebitda:-2, strategic:10, ltv:9, capEff:4, growth:9, aggression:10, longTerm:9, liquidityRisk:16, executionRisk:12, marketShare:12, delayed:[{round:16,revenuePct:8}] }
+        },
+        15: {
+            A: { cash:-2, gm:0, ebitda:-3, strategic:8, ltv:7, capEff:6, growth:1, aggression:5, longTerm:8, liquidityRisk:6, cyberRisk:-12, riskMgmt:10 },
+            B: { cash:-0.4, gm:0, ebitda:-0.5, strategic:6, ltv:5, capEff:5, growth:0, aggression:2, longTerm:5, liquidityRisk:2, cyberRisk:-5, riskMgmt:4 },
+            C: { cash:-0.25, gm:0, ebitda:-1, strategic:6, ltv:4, capEff:5, growth:0, aggression:1, longTerm:4, liquidityRisk:1, cyberRisk:-2, riskMgmt:3, insurance:1 },
+            D: { cash:-0.3, gm:0, ebitda:-1, strategic:7, ltv:6, capEff:6, growth:0, aggression:2, longTerm:6, liquidityRisk:2, cyberRisk:-9, riskMgmt:8, operationalRisk:-5 }
+        },
+        16: {
+            A: { cash:-4, revenueGrowth:0, gm:-1, ebitda:-4, strategic:10, ltv:10, capEff:2, growth:10, aggression:10, longTerm:10, liquidityRisk:12, executionRisk:15, delayed:[{round:18,revenuePct:15}] },
+            B: { cash:0, revenueGrowth:0, gm:0, ebitda:1, strategic:4, ltv:4, capEff:6, growth:0, aggression:-2, longTerm:5, liquidityRisk:-4 },
+            C: { cash:-0.5, revenueGrowth:0, gm:0, ebitda:-0.5, strategic:8, ltv:8, capEff:9, growth:3, aggression:4, longTerm:9, liquidityRisk:2, executionRisk:-5 },
+            D: { cash:0, revenueGrowth:0, gm:0, ebitda:2, strategic:5, ltv:5, capEff:7, growth:1, aggression:0, longTerm:4, liquidityRisk:-1, delayed:[{round:18,cash:0.7,revenuePct:2}] }
+        },
+        17: {
+            A: { cash:-2, gm:0, ebitda:0, strategic:4, ltv:2, capEff:4, growth:-1, aggression:-1, longTerm:1, liquidityRisk:8 },
+            B: { cash:-2, gm:0, ebitda:0.5, strategic:6, ltv:3, capEff:8, growth:-1, aggression:2, longTerm:5, liquidityRisk:8, sharePct:-5 },
+            C: { cash:0, revenueGrowth:0, gm:1, ebitda:2, strategic:9, ltv:10, capEff:7, growth:5, aggression:6, longTerm:10, liquidityRisk:-3, delayed:[{round:18,revenuePct:5}] },
+            D: { cash:0, gm:0, ebitda:0, strategic:7, ltv:7, capEff:7, growth:0, aggression:2, longTerm:6, liquidityRisk:0, sharePct:0 }
+        },
+        18: {
+            A: { philosophy:"growth", strategic:10, ltv:10, capEff:-2, growth:10, aggression:10, longTerm:9 },
+            B: { philosophy:"fortress", strategic:5, ltv:5, capEff:8, growth:-1, aggression:-4, longTerm:5 },
+            C: { philosophy:"balanced", strategic:9, ltv:9, capEff:10, growth:6, aggression:4, longTerm:10 },
+            D: { philosophy:"yield", strategic:6, ltv:5, capEff:9, growth:1, aggression:3, longTerm:2 }
+        }
+    };
+
+    function clone(x) { return JSON.parse(JSON.stringify(x)); }
+    function clamp(x, a=0, b=100) { return Math.max(a, Math.min(b, Number.isFinite(x) ? x : a)); }
+    function money(x) { const s = Math.abs(x); return (x < 0 ? "-" : x > 0 ? "+" : "") + (s >= 1 ? `$${s.toFixed(1)}M` : `$${Math.round(s*1000)}K`); }
+    function pct(x, d=1) { return `${x >= 0 ? "+" : ""}${Number(x).toFixed(d)}%`; }
+    function fmtM(x) { return `$${Number(x).toFixed(1)}M`; }
+
+    function resetUpgrade() {
+        U = clone(UPGRADE_BASE);
+        history = [];
+        delayed = [];
+        shocks = {};
+        capture(0, "Opening balance");
+    }
+
+    function applyDelta(d, source) {
+        if (!d) return;
+        const map = {
+            cash:"cash", revenueGrowth:null, gm:"grossMargin", ebitda:"ebitdaMargin",
+            strategic:"strategicPosition", ltv:"longTermValue", capEff:"capitalEfficiency",
+            growth:"growthAppetite", aggression:"strategicAggression", longTerm:"longTermOrientation",
+            liquidityRisk:"liquidityRisk", leverageRisk:"leverageRisk", operationalRisk:"operationalRisk",
+            executionRisk:"executionRisk", cyberRisk:"cyberRisk", riskMgmt:"riskManagement",
+            dso:"dso", debt:"debt", interestRate:"interestRate", employeeCapacity:"employeeCapacity",
+            customerRetention:"customerRetention", technicalDebt:"technicalDebt", marketShare:"marketShare",
+            sharePct:"shareCount"
+        };
+        Object.keys(map).forEach(k => {
+            const dest = map[k];
+            if (!dest || d[k] === undefined) return;
+            if (k === "sharePct") U.shareCount = clamp(U.shareCount + d[k], 50, 110);
+            else U[dest] += Number(d[k]) || 0;
+        });
+
+        if (d.revenueGrowth) U.revenue *= 1 + d.revenueGrowth / 100;
+        if (d.sharePct && !map.sharePct) U.shareCount = clamp(U.shareCount + d.sharePct,50,110);
+        U.cash = Math.max(0, U.cash);
+        U.revenue = Math.max(0.1, U.revenue);
+        U.debt = Math.max(0, U.debt);
+        U.grossMargin = clamp(U.grossMargin, 5, 80);
+        U.ebitdaMargin = clamp(U.ebitdaMargin, -40, 45);
+        U.dso = clamp(U.dso, 15, 120);
+        U.strategicPosition = clamp(U.strategicPosition);
+        U.longTermValue = clamp(U.longTermValue);
+        U.capitalEfficiency = clamp(U.capitalEfficiency);
+        U.growthAppetite = clamp(U.growthAppetite);
+        U.strategicAggression = clamp(U.strategicAggression);
+        U.longTermOrientation = clamp(U.longTermOrientation);
+        U.liquidityRisk = clamp(U.liquidityRisk);
+        U.leverageRisk = clamp(U.leverageRisk);
+        U.operationalRisk = clamp(U.operationalRisk);
+        U.executionRisk = clamp(U.executionRisk);
+        U.cyberRisk = clamp(U.cyberRisk);
+        U.riskManagement = clamp(U.riskManagement);
+        U.employeeCapacity = clamp(U.employeeCapacity, 60, 120);
+        U.customerRetention = clamp(U.customerRetention, 55, 110);
+        U.technicalDebt = clamp(U.technicalDebt);
+        U.marketShare = clamp(U.marketShare, 0, 100);
+        U.interestRate = clamp(U.interestRate, 0, 15);
+    }
+
+    function applyShock(round) {
+        if (shocks[round]) return;
+        if (round === 4) {
+            U.interestRate += 1.5;
+            U.leverageRisk += U.debt > 0 ? 8 : 2;
+            U.ebitdaMargin -= U.debt * 0.18;
+            shocks[round] = "Rates +150 bps: debt service costs rise 12%.";
+        }
+        if (round === 8) {
+            U.dso += 18;
+            U.liquidityRisk += 8;
+            shocks[round] = "Major client shifts to Net-90: receivables rise and working capital tightens.";
+        }
+    }
+
+    function schedule(ds, round) {
+        (ds || []).forEach(item => delayed.push({ ...item, sourceRound: round }));
+    }
+
+    function applyDelayed(round) {
+        const due = delayed.filter(x => x.round === round);
+        delayed = delayed.filter(x => x.round !== round);
+        due.forEach(item => applyDelta(item, `Delayed from R${item.sourceRound}`));
+        return due;
+    }
+
+    function calcDerived() {
+        const ar = U.revenue * U.dso / 365;
+        const currentLiabilities = Math.max(1.2, U.revenue * 0.12 + U.debt * 0.08);
+        const quickRatio = (U.cash + ar) / currentLiabilities;
+        const ebitda = U.revenue * U.ebitdaMargin / 100;
+        const interest = U.debt * U.interestRate / 100;
+        const capex = Math.max(0, U.grossMargin < 25 ? 0.15 : 0.10) * U.revenue;
+        const nwc = ar - U.revenue * 0.08;
+        const prev = history.length ? history[history.length - 1] : null;
+        const prevNwc = prev ? prev.revenue * prev.dso / 365 - prev.revenue * 0.08 : nwc;
+        const deltaNwc = nwc - prevNwc;
+        const fcf = ebitda - interest - capex - deltaNwc;
+        const burn = Math.max(0, -(fcf));
+        const runway = burn > 0 ? U.cash / (burn / 12) : 99;
+        const leverage = ebitda > 0 ? U.debt / ebitda : 9.9;
+        const interestCoverage = interest > 0 ? ebitda / interest : 99;
+        const cacPayback = clamp(8 + (50 - U.capitalEfficiency) * 0.07 + U.liquidityRisk * 0.025 - (U.grossMargin-34)*0.08, 3, 30);
+        const overallRisk = clamp(U.liquidityRisk*.25 + U.leverageRisk*.18 + U.operationalRisk*.15 + U.executionRisk*.18 + U.cyberRisk*.10 + (100-U.riskManagement)*.14);
+        return { ar,currentLiabilities,quickRatio,ebitda,interest,capex,nwc,deltaNwc,fcf,runway,leverage,interestCoverage,cacPayback,overallRisk };
+    }
+
+    function syncLegacy() {
+        if (typeof company === "undefined") return;
+        company.cash = U.cash;
+        company.revenue = U.revenue;
+        company.grossMargin = U.grossMargin;
+        company.debt = U.debt;
+        company.growth = clamp((U.revenue / UPGRADE_BASE.revenue - 1) * 100 + 50);
+        company.liquidity = clamp(100 - U.liquidityRisk);
+        company.profitability = clamp(50 + U.ebitdaMargin * 2);
+        company.risk = clamp(calcDerived().overallRisk);
+        company.riskManagement = U.riskManagement;
+        company.strategicThinking = U.strategicPosition;
+        company.capitalAllocation = U.capitalEfficiency;
+        company.dso = U.dso;
+        company.strategicPosition = U.strategicPosition;
+        company.longTermValue = U.longTermValue;
+        company.financialPerformance = clamp(50 + U.ebitdaMargin + (U.fcf / Math.max(U.revenue,1))*100);
+    }
+
+    function capture(round, label, choice) {
+        if (!U) return;
+        const d = calcDerived();
+        history.push({
+            round, label, choice: choice || "",
+            cash:U.cash, revenue:U.revenue, grossMargin:U.grossMargin, debt:U.debt,
+            dso:U.dso, ebitdaMargin:U.ebitdaMargin, fcf:d.fcf, runway:d.runway,
+            quickRatio:d.quickRatio, leverage:d.leverage, interestCoverage:d.interestCoverage,
+            cacPayback:d.cacPayback, strategicPosition:U.strategicPosition,
+            longTermValue:U.longTermValue, capitalEfficiency:U.capitalEfficiency,
+            growthAppetite:U.growthAppetite, strategicAggression:U.strategicAggression,
+            longTermOrientation:U.longTermOrientation, liquidityRisk:U.liquidityRisk,
+            leverageRisk:U.leverageRisk, operationalRisk:U.operationalRisk,
+            executionRisk:U.executionRisk, cyberRisk:U.cyberRisk, overallRisk:d.overallRisk
+        });
+    }
+
+    function roundLabel() { return history.map(x => x.round === 0 ? "Open" : `R${x.round}`); }
+
+    function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+
+    /* -----------------------------------------------------
+       NATIVE SVG GRAPHICS
+       ----------------------------------------------------- */
+
+    function lineChart(values, labels, opts={}) {
+        const W=760,H=250,L=48,R=18,T=20,B=38;
+        const nums=values.map(Number).filter(Number.isFinite);
+        if (!nums.length) return "";
+        const min=opts.min !== undefined ? opts.min : Math.min(...nums);
+        const max=opts.max !== undefined ? opts.max : Math.max(...nums);
+        const range=Math.max(1,max-min);
+        const x=i=>L+(W-L-R)*(i/Math.max(1,values.length-1));
+        const y=v=>T+(H-T-B)*(1-(v-min)/range);
+        const pts=values.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+        const grid=[0,.25,.5,.75,1].map(p=>{
+            const yy=T+(H-T-B)*p;
+            const val=max-range*p;
+            return `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="currentColor" opacity=".12"/><text x="${L-8}" y="${yy+4}" text-anchor="end" font-size="10" fill="currentColor" opacity=".65">${opts.decimals===0?Math.round(val):val.toFixed(opts.decimals??1)}</text>`;
+        }).join("");
+        const labs=labels.map((lab,i)=> i===0||i===labels.length-1||i%Math.max(1,Math.ceil(labels.length/6))===0 ? `<text x="${x(i)}" y="${H-10}" text-anchor="middle" font-size="10" fill="currentColor" opacity=".65">${esc(lab)}</text>` : "").join("");
+        const dots=values.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="currentColor"><title>${esc(labels[i])}: ${Number(v).toFixed(opts.decimals??1)}</title></circle>`).join("");
+        return `<div class="ff-chart"><svg viewBox="0 0 ${W} ${H}" role="img"><g>${grid}</g><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${dots}${labs}</svg></div>`;
+    }
+
+    function bar(label,value,sub="") { return `<div class="ff-bar-row"><div><strong>${esc(label)}</strong><span>${esc(sub)}</span></div><div class="ff-bar-track"><i style="width:${clamp(value)}%"></i></div><b>${Math.round(value)}</b></div>`; }
+    function card(label,value,sub="") { return `<div class="ff-card"><span>${esc(label)}</span><strong>${esc(value)}</strong><small>${esc(sub)}</small></div>`; }
+
+    function injectStyles() {
+        if (document.getElementById("ff-upgrade-styles")) return;
+        const s=document.createElement("style"); s.id="ff-upgrade-styles";
+        s.textContent=`
+        .ff-page{max-width:1180px;margin:0 auto;padding:42px 28px 80px}.ff-page-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin-bottom:28px}.ff-page-head h2{margin:7px 0 8px}.ff-page-head p{margin:0;opacity:.7}.ff-back{border:1px solid rgba(127,127,127,.25);background:transparent;padding:11px 16px;border-radius:8px;cursor:pointer}.ff-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}.ff-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-bottom:18px}.ff-card,.ff-panel{border:1px solid rgba(127,127,127,.18);border-radius:12px;padding:20px;background:rgba(127,127,127,.035)}.ff-card span,.ff-card small{display:block;font-size:11px;letter-spacing:.08em;opacity:.62}.ff-card strong{display:block;font-size:28px;margin:7px 0}.ff-panel h3{margin:0 0 7px}.ff-panel>p{opacity:.65;font-size:14px}.ff-chart{width:100%;overflow:hidden;margin-top:14px}.ff-chart svg{width:100%;display:block;color:currentColor}.ff-bar-row{display:grid;grid-template-columns:150px 1fr 35px;gap:12px;align-items:center;margin:16px 0}.ff-bar-row strong,.ff-bar-row span{display:block}.ff-bar-row span{font-size:11px;opacity:.6}.ff-bar-track{height:8px;background:rgba(127,127,127,.15);border-radius:99px;overflow:hidden}.ff-bar-track i{display:block;height:100%;background:currentColor;border-radius:99px}.ff-table{width:100%;border-collapse:collapse;font-size:13px}.ff-table th,.ff-table td{text-align:left;padding:10px;border-bottom:1px solid rgba(127,127,127,.15)}.ff-callout{padding:18px;border-left:3px solid currentColor;background:rgba(127,127,127,.05);margin-top:18px}.ff-statement-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.ff-statement{border:1px solid rgba(127,127,127,.18);border-radius:12px;padding:20px}.ff-statement h4{margin:0 0 15px}.ff-line{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(127,127,127,.12)}.ff-line.total{font-weight:700;border-top:2px solid rgba(127,127,127,.2)}.ff-shock{padding:12px 14px;border:1px dashed currentColor;margin-top:15px;font-size:13px}.ff-option-metrics{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.ff-pill{padding:5px 8px;border-radius:999px;background:rgba(127,127,127,.1);font-size:11px}.ff-pill strong{margin-right:3px}.ff-history-choice{white-space:nowrap}.ff-whatif-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.ff-path{padding:18px;border:1px solid rgba(127,127,127,.18);border-radius:12px}.ff-path h4{margin:0 0 8px}.ff-path p{font-size:13px;opacity:.72}.ff-delta{font-weight:700}.ff-small{font-size:12px;opacity:.65}@media(max-width:800px){.ff-grid-4,.ff-grid-2,.ff-statement-grid,.ff-whatif-grid{grid-template-columns:1fr}.ff-page{padding:28px 16px 60px}.ff-page-head{align-items:flex-start;flex-direction:column}.ff-bar-row{grid-template-columns:120px 1fr 30px}.ff-table{font-size:11px;display:block;overflow-x:auto}}
+        `; document.head.appendChild(s);
+    }
+
+    function nav(active) {
+        return `<header class="game-header"><div class="company-identity"><div class="company-mark">N</div><div><strong>NOVA</strong><span>Chief Financial Officer</span></div></div><nav class="game-navigation"><button class="nav-item ${active==='overview'?'active':''}" onclick="showDashboardOverview()">Overview</button><button class="nav-item ${active==='financials'?'active':''}" onclick="showFinancialSummary()">Financials</button><button class="nav-item ${active==='strategy'?'active':''}" onclick="showStrategySummary()">Strategy</button><button class="nav-item ${active==='risk'?'active':''}" onclick="showRiskSummary()">Risk</button></nav><div class="round-indicator"><strong>ROUND ${String((typeof company!=='undefined'?company.round:1)).padStart(2,'0')} / 18</strong><span>${esc(active==='overview'?'CFO dashboard':active==='financials'?'Financial analysis':active==='strategy'?'Strategic analysis':'Risk analysis')}</span></div></header>`;
+    }
+
+    function pageShell(active,title,kicker,subtitle,body) {
+        const el=document.getElementById("dashboard-screen"); if(!el)return;
+        injectStyles();
+        el.innerHTML=nav(active)+`<main class="ff-page"><div class="ff-page-head"><div><span class="section-label">${esc(kicker)}</span><h2>${esc(title)}</h2><p>${esc(subtitle)}</p></div><button class="ff-back" onclick="showDashboardOverview()">← Overview</button></div>${body}</main>`;
+        window.scrollTo({top:0,left:0,behavior:"instant"});
+    }
+
+    function showFinancialsPage() {
+        const d=calcDerived(), s=history;
+        pageShell("financials","Financial control center","FINANCIALS","Actual financial metrics — not abstract game meters. Your balance sheet and cash conversion change as decisions compound.",`
+        <section class="ff-grid-4">
+            ${card("Cash",fmtM(U.cash),`${d.runway>=99?'cash generative':d.runway.toFixed(1)+' months runway'}`)}
+            ${card("Revenue",fmtM(U.revenue),`${pct((U.revenue/UPGRADE_BASE.revenue-1)*100,0)} vs opening`)}
+            ${card("Gross margin",`${U.grossMargin.toFixed(1)}%`,`opening ${UPGRADE_BASE.grossMargin.toFixed(0)}%`)}
+            ${card("Debt / EBITDA",d.leverage>=9.9?'NM':`${d.leverage.toFixed(1)}x`,`interest coverage ${d.interestCoverage>=99?'NM':d.interestCoverage.toFixed(1)}x`)}
+        </section>
+        <section class="ff-grid-2">
+          <div class="ff-panel"><h3>Revenue trajectory</h3><p>Revenue after each decision and delayed consequence.</p>${lineChart(s.map(x=>x.revenue),roundLabel(),{decimals:1})}</div>
+          <div class="ff-panel"><h3>Gross margin</h3><p>Unit economics as pricing, infrastructure and acquisition choices compound.</p>${lineChart(s.map(x=>x.grossMargin),roundLabel(),{decimals:1,min:0,max:50})}</div>
+        </section>
+        <section class="ff-grid-2">
+          <div class="ff-panel"><h3>EBITDA margin</h3><p>Operating profitability after the effects of your decisions.</p>${lineChart(s.map(x=>x.ebitdaMargin),roundLabel(),{decimals:1})}</div>
+          <div class="ff-panel"><h3>Free cash flow</h3><p>Estimated FCF after interest, capex and working-capital movement.</p>${lineChart(s.map(x=>x.fcf),roundLabel(),{decimals:2})}</div>
+        </section>
+        <section class="ff-grid-2">
+          <div class="ff-panel"><h3>Cash vs. debt</h3><p>Liquidity cushion relative to financial obligations.</p>${lineChart(s.map(x=>x.cash),roundLabel(),{decimals:1})}${lineChart(s.map(x=>x.debt),roundLabel(),{decimals:1})}</div>
+          <div class="ff-panel"><h3>Liquidity & working capital</h3><p>Runway, quick ratio and DSO are tracked independently.</p>${bar("Quick ratio",clamp(d.quickRatio/2*100),d.quickRatio.toFixed(2)+"x")}${bar("Cash runway",clamp(d.runway/12*100),d.runway>=99?"cash generative":d.runway.toFixed(1)+" months")}${bar("DSO pressure",clamp((U.dso-20)/100*100),U.dso.toFixed(0)+" days")}</div>
+        </section>
+        <section class="ff-panel"><h3>Working-capital operating metrics</h3><div class="ff-grid-4" style="margin-top:14px">${card("Accounts receivable",fmtM(d.ar),"estimated")}${card("Quick ratio",`${d.quickRatio.toFixed(2)}x`,`(Cash + AR) / current liabilities`)}${card("DSO",`${Math.round(U.dso)} days`,`opening ${UPGRADE_BASE.dso} days`)}${card("CAC payback",`${d.cacPayback.toFixed(1)} mo`,`estimated from margin + efficiency`)}</div></section>
+        <section class="ff-panel" style="margin-top:18px"><h3>Simplified financial statements</h3><p>Management view — designed for decision-making rather than GAAP reporting.</p><div class="ff-statement-grid">
+          <div class="ff-statement"><h4>Income Statement</h4>${[['Revenue',fmtM(U.revenue)],['Gross profit',fmtM(U.revenue*U.grossMargin/100)],['EBITDA',fmtM(d.ebitda)],['Interest',`-${fmtM(d.interest)}`],['FCF proxy',fmtM(d.fcf)]].map((r,i)=>`<div class="ff-line ${i===4?'total':''}"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div>
+          <div class="ff-statement"><h4>Balance Sheet</h4>${[['Cash',fmtM(U.cash)],['Accounts receivable',fmtM(d.ar)],['Debt',fmtM(U.debt)],['Net debt',fmtM(U.debt-U.cash)],['Share count index',U.shareCount.toFixed(0)]].map((r,i)=>`<div class="ff-line ${i===3?'total':''}"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div>
+          <div class="ff-statement"><h4>Cash Flow</h4>${[['EBITDA',fmtM(d.ebitda)],['Interest',`-${fmtM(d.interest)}`],['Capex',`-${fmtM(d.capex)}`],['Δ Working capital',`-${fmtM(d.deltaNwc)}`],['Free cash flow',fmtM(d.fcf)]].map((r,i)=>`<div class="ff-line ${i===4?'total':''}"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div>
+        </div></section>`);
+    }
+
+    function showStrategyPage() {
+        const s=history;
+        pageShell("strategy","Strategic control center","STRATEGY","The strategy page tracks what your capital allocation choices are building — not just whether a bar went up.",`
+        <section class="ff-grid-4">${card("Strategic position",Math.round(U.strategicPosition),"cumulative")}${card("Long-term value",Math.round(U.longTermValue),"sustainability index")}${card("Capital efficiency",Math.round(U.capitalEfficiency),"allocation discipline")}${card("Market share",`${U.marketShare.toFixed(1)}%`,`opening ${UPGRADE_BASE.marketShare}%`)}</section>
+        <section class="ff-grid-2"><div class="ff-panel"><h3>Growth trajectory</h3><p>Revenue path across the 18 decisions.</p>${lineChart(s.map(x=>x.revenue),roundLabel(),{decimals:1})}</div><div class="ff-panel"><h3>Strategic position</h3><p>Compounded strategic effect of decisions and delayed outcomes.</p>${lineChart(s.map(x=>x.strategicPosition),roundLabel(),{decimals:0,min:0,max:100})}</div></section>
+        <section class="ff-grid-2"><div class="ff-panel"><h3>Long-term value</h3>${lineChart(s.map(x=>x.longTermValue),roundLabel(),{decimals:0,min:0,max:100})}</div><div class="ff-panel"><h3>Capital allocation profile</h3>${bar("Capital efficiency",U.capitalEfficiency)}${bar("Growth appetite",U.growthAppetite)}${bar("Strategic aggression",U.strategicAggression)}${bar("Long-term orientation",U.longTermOrientation)}</div></section>
+        <section class="ff-panel"><h3>Decision history</h3><p>Every choice is recorded so the final CFO profile can be explained, not guessed.</p><table class="ff-table"><thead><tr><th>Round</th><th>Decision</th><th>Cash</th><th>Revenue</th><th>Strategic</th><th>Long-term</th></tr></thead><tbody>${history.filter(x=>x.round>0).map(x=>`<tr><td>R${x.round}</td><td class="ff-history-choice">${esc(x.choice)}</td><td>${fmtM(x.cash)}</td><td>${fmtM(x.revenue)}</td><td>${Math.round(x.strategicPosition)}</td><td>${Math.round(x.longTermValue)}</td></tr>`).join('')}</tbody></table></section>`);
+    }
+
+    function showRiskPage() {
+        const d=calcDerived(), s=history;
+        pageShell("risk","Risk control center","RISK","Risk is decomposed into liquidity, leverage, operational, execution and cyber exposure. Higher exposure is not automatically bad; unmanaged exposure is.",`
+        <section class="ff-grid-4">${card("Overall risk",Math.round(d.overallRisk),"exposure")}${card("Liquidity risk",Math.round(U.liquidityRisk),"higher = worse")}${card("Leverage risk",Math.round(U.leverageRisk),"higher = worse")}${card("Risk management",Math.round(U.riskManagement),"capability")}</section>
+        <section class="ff-grid-2"><div class="ff-panel"><h3>Overall risk exposure</h3>${lineChart(s.map(x=>x.overallRisk),roundLabel(),{decimals:0,min:0,max:100})}</div><div class="ff-panel"><h3>Risk-management profile</h3>${bar("Risk management",U.riskManagement)}${bar("Liquidity discipline",100-U.liquidityRisk)}${bar("Operational resilience",100-U.operationalRisk)}${bar("Execution resilience",100-U.executionRisk)}</div></section>
+        <section class="ff-grid-2"><div class="ff-panel"><h3>Liquidity risk</h3>${lineChart(s.map(x=>x.liquidityRisk),roundLabel(),{decimals:0,min:0,max:100})}</div><div class="ff-panel"><h3>Leverage risk</h3>${lineChart(s.map(x=>x.leverageRisk),roundLabel(),{decimals:0,min:0,max:100})}</div></section>
+        <section class="ff-grid-2"><div class="ff-panel"><h3>Operational & execution risk</h3>${lineChart(s.map(x=>(x.operationalRisk+x.executionRisk)/2),roundLabel(),{decimals:0,min:0,max:100})}</div><div class="ff-panel"><h3>Cyber risk</h3>${lineChart(s.map(x=>x.cyberRisk),roundLabel(),{decimals:0,min:0,max:100})}</div></section>
+        <div class="ff-callout"><strong>Risk-management test:</strong> a CFO who takes risk to fund a high-return opportunity can outperform a CFO who avoids every risk. The simulation looks at the relationship between exposure, liquidity, leverage, execution and the capability to absorb shocks.</div>`);
+    }
+
+    function showOverview() {
+        if (typeof window.showDashboardOverview === "function" && window.showDashboardOverview !== showOverview) {
+            window.showDashboardOverview();
+            return;
+        }
+        if (typeof company !== "undefined" && typeof updateDashboard === "function") updateDashboard();
+        window.scrollTo({top:0,left:0,behavior:"instant"});
+    }
+
+    function renderUpgradedScenario() {
+        if (!currentScenario || typeof document === "undefined") return;
+        const round = currentScenario.round;
+        applyShock(round);
+        const d=calcDerived();
+        const shock = shocks[round];
+        const info=document.getElementById("scenario-information");
+        if (info) {
+            const baseInfo=(currentScenario.information||[]).map(item=>`<div><span>${esc(item[0])}</span><strong>${item[1]==='dynamic'? (item[0].includes('CASH')?fmtM(U.cash):item[0].includes('DEBT')?fmtM(U.debt):item[0].includes('REVENUE')?fmtM(U.revenue):esc(item[1])):esc(item[1])}</strong></div>`).join('');
+            const live=`<div><span>CASH RUNWAY</span><strong>${d.runway>=99?'Cash generative':d.runway.toFixed(1)+' mo'}</strong></div><div><span>QUICK RATIO</span><strong>${d.quickRatio.toFixed(2)}x</strong></div><div><span>EBITDA MARGIN</span><strong>${U.ebitdaMargin.toFixed(1)}%</strong></div><div><span>DSO</span><strong>${Math.round(U.dso)} days</strong></div>`;
+            info.innerHTML=baseInfo+live+(shock?`<div class="ff-shock"><strong>MACRO / EXTERNAL SHOCK:</strong> ${esc(shock)}</div>`:'');
+        }
+        const opts=document.getElementById("decision-options");
+        if (!opts) return;
+        opts.innerHTML=currentScenario.options.map((o,i)=>{
+            const m=(M[round]||{})[o.letter]||{};
+            const metrics=[];
+            if(m.cash!==undefined) metrics.push(`<span class="ff-pill"><strong>Cash</strong>${money(m.cash)}</span>`);
+            if(m.revenueGrowth!==undefined) metrics.push(`<span class="ff-pill"><strong>Revenue</strong>${pct(m.revenueGrowth,1)}</span>`);
+            if(m.gm!==undefined) metrics.push(`<span class="ff-pill"><strong>Gross margin</strong>${pct(m.gm,1)}</span>`);
+            if(m.debt!==undefined) metrics.push(`<span class="ff-pill"><strong>Debt</strong>${money(m.debt)}</span>`);
+            if(m.dso!==undefined) metrics.push(`<span class="ff-pill"><strong>DSO</strong>${m.dso>=0?'+':''}${m.dso} days</span>`);
+            if(m.liquidityRisk!==undefined) metrics.push(`<span class="ff-pill"><strong>Liquidity risk</strong>${m.liquidityRisk>=0?'+':''}${m.liquidityRisk}</span>`);
+            if(m.delayed?.length) metrics.push(`<span class="ff-pill"><strong>Delayed</strong>${m.delayed.map(x=>`R${x.round}`).join(', ')}</span>`);
+            return `<button class="decision-card" onclick="makeDecision(${i})"><span class="option-letter">${esc(o.letter)}</span><div><strong>${esc(o.name)}</strong><p>${esc(o.description)}</p><div class="ff-option-metrics">${metrics.join('')}</div></div></button>`;
+        }).join('');
+    }
+
+    /* -----------------------------------------------------
+       WRAP THE EXISTING ENGINE
+       ----------------------------------------------------- */
+
+    window.startSimulation = function () {
+        if (priorStart) priorStart();
+        resetUpgrade();
+        syncLegacy();
+        if (typeof updateDashboard === "function") updateDashboard();
+    };
+
+    window.restartSimulation = function () {
+        if (priorRestart) priorRestart();
+        resetUpgrade();
+        syncLegacy();
+        if (typeof updateDashboard === "function") updateDashboard();
+    };
+
+    window.showScenario = function () {
+        if (priorShowScenario) priorShowScenario();
+        if (typeof currentScenario !== "undefined" && currentScenario) renderUpgradedScenario();
+    };
+
+    window.makeDecision = function (index) {
+        if (!currentScenario) return;
+        const round=currentScenario.round;
+        const option=currentScenario.options[index];
+        if (!option) return;
+
+        applyShock(round);
+        const due=applyDelayed(round);
+        const m=(M[round]||{})[option.letter]||{};
+
+        /* The existing engine records hidden behavioral dimensions.
+           We retain that layer, then replace the old abstract financial
+           meters with this more explicit financial model. */
+        if (priorMakeDecision) priorMakeDecision(index);
+        applyDelta(m,`R${round} ${option.letter}`);
+        schedule(m.delayed,round);
+        syncLegacy();
+
+        capture(round,`${option.name}`,`${option.letter} · ${option.name}`);
+        const last=history[history.length-1];
+        last.delayedApplied=due.map(x=>x.sourceRound);
+        last.shock=shocks[round]||null;
+
+        /* Add decision-specific explanation to the existing consequence screen. */
+        const d=calcDerived();
+        const impactCash = m.cash || 0;
+        const delayedText = m.delayed?.length ? ` Some benefits/costs are deferred to ${m.delayed.map(x=>`Round ${x.round}`).join(' and ')}.` : '';
+        const mechanics = `Cash runway is now ${d.runway>=99?'cash generative':d.runway.toFixed(1)+' months'}, quick ratio is ${d.quickRatio.toFixed(2)}x, and DSO is ${Math.round(U.dso)} days.${delayedText}`;
+        const sum=document.getElementById("consequence-summary"); if(sum) sum.textContent=(option.summary||"Your decision changed Nova's financial position.")+" "+mechanics;
+        const ci=document.getElementById("cash-impact"); if(ci) ci.textContent=money(impactCash);
+        const ri=document.getElementById("revenue-impact"); if(ri) ri.textContent=m.revenueGrowth!==undefined?pct(m.revenueGrowth,1):"0%";
+        const riskDelta=(m.liquidityRisk||0)+(m.leverageRisk||0)+(m.operationalRisk||0)+(m.executionRisk||0)+(m.cyberRisk||0);
+        const rsi=document.getElementById("risk-impact"); if(rsi) rsi.textContent=(riskDelta>=0?'+':'')+riskDelta;
+        const si=document.getElementById("strategy-impact"); if(si) si.textContent=(m.strategic||0)>=0?`+${m.strategic||0}`:`${m.strategic||0}`;
+
+        if (round >= 18) {
+            if (typeof priorGenerateFinalReport === "function") priorGenerateFinalReport();
+            setTimeout(renderUpgradedResults,0);
+        }
+    };
+
+    function calculateCompetencies() {
+        const d = calcDerived();
+        const growth = clamp((U.revenue / UPGRADE_BASE.revenue - 1) * 100 + 50);
+        const financial = clamp(50 + U.ebitdaMargin * 1.7 + (d.fcf / Math.max(U.revenue,1))*120);
+        const liquidity = clamp(100 - U.liquidityRisk * 0.65 + Math.min(15, d.quickRatio * 6));
+        const risk = clamp(100 - d.overallRisk * 0.55 + U.riskManagement * 0.35);
+        const strategy = clamp(U.strategicPosition * 0.55 + U.longTermValue * 0.25 + growth * 0.20);
+        const capital = clamp(45 + U.capitalEfficiency * 0.35 + (d.interestCoverage >= 99 ? 12 : d.interestCoverage * 2) - Math.max(0,d.leverage-3)*4);
+        const ethics = clamp(50 + (typeof company !== 'undefined' ? company.ethics - 60 : 0) * 0.9);
+        return { financial, liquidity, risk, strategy, capital, ethics };
+    }
+
+    function renderCompetencyScores() {
+        const c = calculateCompetencies();
+        const ids = {financial:'score-financial',liquidity:'score-liquidity',risk:'score-risk',strategy:'score-strategy',capital:'score-capital',ethics:'score-ethics'};
+        Object.entries(ids).forEach(([k,id]) => { const el=document.getElementById(id); if(el) el.textContent=Math.round(c[k]); });
+        return c;
+    }
+
+    function renderUpgradedResults() {
+        const d=calcDerived();
+        renderCompetencyScores();
+        const el=document.querySelector(".results-container");
+        if(!el) return;
+        injectStyles();
+        let block=document.getElementById("ff-upgraded-results");
+        if(block) block.remove();
+        block=document.createElement("section"); block.id="ff-upgraded-results"; block.className="ff-panel"; block.style.marginTop="22px";
+        const profile=(typeof company!=='undefined' && company.finalProfile)?company.finalProfile:"CFO profile";
+        const path=history.map(x=>x.revenue);
+        const optimal=history.map((x,i)=>UPGRADE_BASE.revenue*Math.pow(1.12,i));
+        const distress=history.map((x,i)=>Math.max(.5,UPGRADE_BASE.revenue*Math.pow(.96,i)));
+        const conservativeCash = Math.max(0.1, U.cash + history.slice(1).reduce((a,x,i)=>a + Math.max(0, (history[i]?.cash ?? x.cash) - x.cash) * 0.35, 0));
+        const aggressiveCash = Math.max(0.1, U.cash - history.slice(1).reduce((a,x,i)=>a + Math.max(0, x.cash - (history[i]?.cash ?? x.cash)) * 0.25, 0));
+        const conservativeRevenue = Math.max(0.1, U.revenue * 0.90);
+        const aggressiveRevenue = U.revenue * 1.12;
+        block.innerHTML=`<span class="section-label">FINANCIAL POST-MORTEM</span><h3 style="margin:5px 0 8px">Your trajectory vs. reference paths</h3><p class="ff-small">Reference paths are analytical benchmarks, not a single “correct” answer.</p>${lineChart(path,roundLabel(),{decimals:1})}
+        <div class="ff-grid-4" style="margin-top:14px">${card("Ending cash",fmtM(U.cash),d.runway>=99?"cash generative":d.runway.toFixed(1)+" mo runway")}${card("Ending revenue",fmtM(U.revenue),pct((U.revenue/UPGRADE_BASE.revenue-1)*100,0))}${card("EBITDA margin",`${U.ebitdaMargin.toFixed(1)}%`,`${d.ebitda>=0?fmtM(d.ebitda):'-'+fmtM(Math.abs(d.ebitda))} EBITDA`)}${card("Debt / EBITDA",d.leverage>=9.9?'NM':d.leverage.toFixed(1)+'x',d.interestCoverage>=99?'NM':d.interestCoverage.toFixed(1)+'x coverage')}</div>
+        <div class="ff-grid-2" style="margin-top:18px"><div class="ff-panel"><h3>Reference: growth path</h3><p>Illustrative sustained-investment trajectory.</p>${lineChart(optimal,roundLabel(),{decimals:1})}</div><div class="ff-panel"><h3>Reference: distress path</h3><p>Illustrative contraction trajectory.</p>${lineChart(distress,roundLabel(),{decimals:1})}</div></div>
+        <div class="ff-whatif-grid" style="margin-top:18px"><div class="ff-path"><h4>Your path</h4><p>${profile}. ${fmtM(U.cash)} cash, ${fmtM(U.revenue)} revenue, ${Math.round(d.overallRisk)} overall risk exposure.</p></div><div class="ff-path"><h4>If you leaned more conservative</h4><p>Estimated ending cash ${fmtM(conservativeCash)} and revenue ${fmtM(conservativeRevenue)}. You would likely absorb the rate and working-capital shocks with more flexibility, but sacrifice upside.</p></div><div class="ff-path"><h4>If you leaned more aggressive</h4><p>Estimated ending cash ${fmtM(aggressiveCash)} and revenue ${fmtM(aggressiveRevenue)}. More upside is paired with greater leverage, execution exposure and sensitivity to external shocks.</p></div></div>`;
+        el.appendChild(block);
+    }
+
+    window.showFinancialSummary = function(){ showFinancialsPage(); };
+    window.showStrategySummary = function(){ showStrategyPage(); };
+    window.showRiskSummary = function(){ showRiskPage(); };
+    window.showDashboardOverview = function(){ showOverview(); };
+
+    /* Expose read-only analytics for debugging / future UI. */
+    window.FF_REALISM = { getState:()=>clone(U), getHistory:()=>clone(history), getDerived:()=>clone(calcDerived()), scenarios:M };
+
+    function boot() {
+        injectStyles();
+        resetUpgrade();
+        syncLegacy();
+    }
+    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded",boot); else boot();
+
 })();
