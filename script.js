@@ -3391,7 +3391,7 @@ function createFreshCompany() {
    5. SCREEN NAVIGATION
    ========================================================= */
 
-function showScreen(screenId, preserveScroll = false) {
+function showScreen(screenId) {
 
     const target = document.getElementById(screenId);
 
@@ -3400,39 +3400,20 @@ function showScreen(screenId, preserveScroll = false) {
         return;
     }
 
-    const currentScroll = window.scrollY;
-
     document.querySelectorAll(".screen").forEach(screen => {
         screen.classList.remove("active");
     });
 
     target.classList.add("active");
 
-    if (preserveScroll) {
-
-        requestAnimationFrame(() => {
-
-            window.scrollTo({
-                top: currentScroll,
-                left: 0,
-                behavior: "auto"
-            });
-
+    // Always start the new screen at the top.
+    requestAnimationFrame(() => {
+        window.scrollTo({
+            top: 0,
+            left: 0,
+            behavior: "auto"
         });
-
-    } else {
-
-        requestAnimationFrame(() => {
-
-            window.scrollTo({
-                top: 0,
-                left: 0,
-                behavior: "auto"
-            });
-
-        });
-
-    }
+    });
 
 }
 
