@@ -3393,6 +3393,7 @@ function createFreshCompany() {
 
 function showScreen(screenId) {
 
+    const screens = document.querySelectorAll(".screen");
     const target = document.getElementById(screenId);
 
     if (!target) {
@@ -3400,21 +3401,16 @@ function showScreen(screenId) {
         return;
     }
 
-    document.querySelectorAll(".screen").forEach(screen => {
+    screens.forEach(screen => {
         screen.classList.remove("active");
+        screen.style.display = "none";
     });
 
     target.classList.add("active");
+    target.style.display = "block";
 
-    // Always start the new screen at the top.
-    requestAnimationFrame(() => {
-        window.scrollTo({
-            top: 0,
-            left: 0,
-            behavior: "auto"
-        });
-    });
-
+    // Always begin the active screen at the top
+    window.scrollTo(0, 0);
 }
 
 
