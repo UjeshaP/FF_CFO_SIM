@@ -5231,3 +5231,1054 @@ window.showRiskSummary =
 console.log(
     "FINANCE FORWARD — NOVA 18-ROUND CFO SIMULATION ENGINE LOADED"
 );
+
+
+
+/* =========================================================
+   FINANCE FORWARD — ANALYTICAL UI / DATA LAYER
+   Complete replacement enhancement
+   ---------------------------------------------------------
+   Adds:
+   - persistent metric snapshots
+   - derived EBITDA / FCF / DSO / runway
+   - delayed consequences
+   - native SVG charts
+   - Financials / Strategy / Risk analytical pages
+   - decision history
+   - What-If analysis
+   - mobile-responsive injected UI
+   ========================================================= */
+
+(function () {
+    "use strict";
+
+    /* -----------------------------------------------------
+       ANALYTICAL STATE
+       ----------------------------------------------------- */
+
+    const FF_ANALYTICS = {
+        snapshots: [],
+        delayed: [],
+        initialized: false,
+        overviewHTML: null,
+        overviewReady: false,
+        lastPage: "overview"
+    };
+
+    const FF_BASELINE = {
+        revenue: 12.4,
+        grossMargin: 34,
+        debt: 1.8,
+        cash: 6.0,
+        dso: 42,
+        ebitdaMargin: 7.5
+    };
+
+    function ffClamp(v, min = 0, max = 100) {
+        return Math.max(min, Math.min(max, v));
+    }
+
+    function ffNumber(v, fallback = 0) {
+        return Number.isFinite(Number(v)) ? Number(v) : fallback;
+    }
+
+    function ffDerived() {
+        const ebitdaMargin = ffClamp(
+            company.profitability * 0.34 +
+            company.grossMargin * 0.18 -
+            company.risk * 0.035 -
+            4,
+            -20,
+            45
+        );
+
+        const ebitda = company.revenue * ebitdaMargin / 100;
+
+        const investmentDrag = Math.max(0, company.totalInvestment * 0.035);
+        const debtServiceDrag = company.debt * 0.075;
+        const workingCapitalDrag = Math.max(0, (company.dso || 42) - 42) * 0.004 * company.revenue;
+
+        const fcf = ebitda - investmentDrag - debtServiceDrag - workingCapitalDrag;
+
+        const monthlyBurn = Math.max(
+            0.05,
+            Math.abs(Math.min(0, fcf)) / 12
+        );
+
+        const runway = fcf >= 0
+            ? Math.max(12, company.cash / 0.12)
+            : company.cash / monthlyBurn;
+
+        const leverageRisk = ffClamp(
+            company.debt / Math.max(company.revenue, 1) * 100 * 1.7 +
+            (company.debt > 4 ? 12 : 0)
+        );
+
+        const liquidityRisk = ffClamp(
+            100 - company.liquidity
+        );
+
+        const operationalRisk = ffClamp(
+            25 +
+            Math.max(0, 55 - company.profitability) * 0.35 +
+            Math.max(0, 50 - company.capitalEfficiency) * 0.2
+        );
+
+        const executionRisk = ffClamp(
+            25 +
+            company.strategicAggression * 0.25 +
+            company.growthAppetite * 0.12 -
+            company.operationalDecisiveness * 0.12
+        );
+
+        const cyberRisk = ffClamp(
+            company.decisions.reduce((total, d) => {
+                if ((d.scenario || "").toLowerCase().includes("cyber")) {
+                    return total + (d.choiceLetter === "A" ? -18 : d.choiceLetter === "B" ? -8 : 2);
+                }
+                return total;
+            }, 38)
+        );
+
+        return {
+            ebitdaMargin,
+            ebitda,
+            fcf,
+            runway,
+            leverageRisk,
+            liquidityRisk,
+            operationalRisk,
+            executionRisk,
+            cyberRisk
+        };
+    }
+
+    function ffSnapshot(label = "") {
+        const d = ffDerived();
+
+        return {
+            round: Math.max(0, company.round - (label === "post-decision" ? 0 : 1)),
+            label,
+            cash: ffNumber(company.cash),
+            revenue: ffNumber(company.revenue),
+            grossMargin: ffNumber(company.grossMargin),
+            debt: ffNumber(company.debt),
+            liquidity: ffNumber(company.liquidity),
+            profitability: ffNumber(company.profitability),
+            growth: ffNumber(company.growth),
+            risk: ffNumber(company.risk),
+            dso: ffNumber(company.dso, 42),
+            ebitdaMargin: d.ebitdaMargin,
+            ebitda: d.ebitda,
+            fcf: d.fcf,
+            runway: d.runway,
+            strategicPosition: ffNumber(company.strategicPosition, 50),
+            longTermValue: ffNumber(company.longTermValue, 50),
+            capitalEfficiency: ffNumber(company.capitalEfficiency),
+            growthAppetite: ffNumber(company.growthAppetite),
+            strategicAggression: ffNumber(company.strategicAggression),
+            longTermOrientation: ffNumber(company.longTermOrientation),
+            riskManagementTrait: ffNumber(company.riskManagementTrait)
+        };
+    }
+
+    function ffEnsureState() {
+        if (company.dso == null) company.dso = 42;
+        if (company.strategicPosition == null) company.strategicPosition = 50;
+        if (company.longTermValue == null) company.longTermValue = 50;
+        if (company.totalFCF == null) company.totalFCF = 0;
+
+        if (!Array.isArray(company.decisions)) company.decisions = [];
+        if (!FF_ANALYTICS.snapshots.length) {
+            FF_ANALYTICS.snapshots.push({
+                ...ffSnapshot("opening"),
+                round: 0,
+                revenue: FF_BASELINE.revenue,
+                grossMargin: FF_BASELINE.grossMargin,
+                debt: FF_BASELINE.debt,
+                cash: FF_BASELINE.cash,
+                dso: FF_BASELINE.dso
+            });
+        }
+    }
+
+    function ffApplyDelayed(round) {
+        if (!FF_ANALYTICS.delayed.length) return;
+
+        const due = FF_ANALYTICS.delayed.filter(x => x.dueRound <= round);
+        FF_ANALYTICS.delayed = FF_ANALYTICS.delayed.filter(x => x.dueRound > round);
+
+        due.forEach(item => {
+            if (!item.effects) return;
+            applyEffects(item.effects);
+        });
+    }
+
+    function ffScheduleConsequences(scenario, option) {
+        const r = scenario.round;
+        const letter = option.letter;
+
+        /* These are deliberately modest secondary effects.
+           The primary scenario mechanics remain intact. */
+
+        const delayed = [];
+
+        if (r === 1) {
+            if (letter === "A") delayed.push({
+                dueRound: r + 4,
+                effects: { growth: 5, profitability: 2, risk: -2, strategicThinking: 2 }
+            });
+            if (letter === "B") delayed.push({
+                dueRound: r + 4,
+                effects: { growth: -4, profitability: 1, risk: 3, strategicThinking: -2 }
+            });
+            if (letter === "C") delayed.push({
+                dueRound: r + 3,
+                effects: { growth: 3, profitability: 1, risk: -2, capitalAllocation: 2 }
+            });
+            if (letter === "D") delayed.push({
+                dueRound: r + 4,
+                effects: { growth: 4, profitability: 2, risk: 1, strategicThinking: 2 }
+            });
+        }
+
+        if (r === 7) {
+            if (letter === "A") delayed.push({
+                dueRound: r + 3,
+                effects: { profitability: -1, risk: 3, strategicThinking: 3 }
+            });
+            if (letter === "B") delayed.push({
+                dueRound: r + 3,
+                effects: { profitability: -2, risk: 5, liquidity: -3 }
+            });
+            if (letter === "C") delayed.push({
+                dueRound: r + 3,
+                effects: { profitability: 2, risk: -2, liquidity: 2 }
+            });
+        }
+
+        if (r === 8) {
+            if (letter === "A") delayed.push({
+                dueRound: r + 2,
+                effects: { profitability: -2, risk: 5, growth: 2 }
+            });
+            if (letter === "B") delayed.push({
+                dueRound: r + 2,
+                effects: { profitability: 2, risk: -4, growth: 3 }
+            });
+            if (letter === "C") delayed.push({
+                dueRound: r + 2,
+                effects: { growth: -2, risk: -2, profitability: 1 }
+            });
+            if (letter === "D") delayed.push({
+                dueRound: r + 2,
+                effects: { growth: 4, risk: 3, profitability: 1 }
+            });
+        }
+
+        if (r === 14) {
+            if (letter === "A") delayed.push({
+                dueRound: r + 3,
+                effects: { growth: 5, profitability: 2, risk: 1 }
+            });
+            if (letter === "B") delayed.push({
+                dueRound: r + 3,
+                effects: { growth: 2, profitability: 2, risk: -1 }
+            });
+            if (letter === "C") delayed.push({
+                dueRound: r + 3,
+                effects: { growth: 4, profitability: 1, risk: 1 }
+            });
+            if (letter === "D") delayed.push({
+                dueRound: r + 3,
+                effects: { growth: 6, profitability: 2, risk: 5 }
+            });
+        }
+
+        delayed.forEach(x => FF_ANALYTICS.delayed.push(x));
+    }
+
+    function ffUpdateDerivedFromDecision(scenario, option) {
+        const r = scenario.round;
+        const letter = option.letter;
+
+        /* DSO is a persistent operating metric. */
+        if (r === 4) {
+            if (letter === "A") company.dso = 35;
+            if (letter === "B") company.dso = 52;
+            if (letter === "C") company.dso = 78;
+            if (letter === "D") company.dso = 31;
+        } else if (r !== 18) {
+            /* Slow drift when working capital is not actively fixed. */
+            if (company.dso > 45 && r % 4 === 0) company.dso += 2;
+        }
+
+        /* Strategic position compounds rather than resetting. */
+        const strategicDelta =
+            ffNumber(option.effects && option.effects.strategicThinking) * 0.55 +
+            ffNumber(option.effects && option.effects.growth) * 0.25 -
+            ffNumber(option.effects && option.effects.risk) * 0.10;
+
+        company.strategicPosition = ffClamp(
+            ffNumber(company.strategicPosition, 50) + strategicDelta
+        );
+
+        const valueDelta =
+            ffNumber(option.effects && option.effects.longTermOrientation) * 0.4 +
+            ffNumber(option.effects && option.effects.capitalEfficiency) * 0.25 +
+            ffNumber(option.effects && option.effects.growth) * 0.15 -
+            Math.max(0, ffNumber(option.effects && option.effects.risk)) * 0.10;
+
+        company.longTermValue = ffClamp(
+            ffNumber(company.longTermValue, 50) + valueDelta
+        );
+    }
+
+    /* -----------------------------------------------------
+       NATIVE SVG CHARTS
+       ----------------------------------------------------- */
+
+    function ffEsc(s) {
+        return String(s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+    }
+
+    function ffChart(values, labels, opts = {}) {
+        const width = opts.width || 720;
+        const height = opts.height || 280;
+        const pad = { top: 22, right: 18, bottom: 38, left: 48 };
+
+        if (!values.length) return "";
+
+        const nums = values.map(v => ffNumber(v));
+        let min = Math.min(...nums);
+        let max = Math.max(...nums);
+
+        if (opts.zeroBaseline) min = Math.min(0, min);
+        if (min === max) {
+            min -= 1;
+            max += 1;
+        }
+
+        const range = max - min;
+        min -= range * 0.08;
+        max += range * 0.08;
+
+        const innerW = width - pad.left - pad.right;
+        const innerH = height - pad.top - pad.bottom;
+
+        const x = i =>
+            pad.left + (values.length === 1 ? innerW / 2 : i * innerW / (values.length - 1));
+
+        const y = v =>
+            pad.top + (max - v) * innerH / (max - min);
+
+        const points = nums.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+
+        let grid = "";
+        for (let i = 0; i <= 4; i++) {
+            const val = min + (max - min) * i / 4;
+            const yy = y(val);
+            grid += `
+                <line x1="${pad.left}" y1="${yy}" x2="${width - pad.right}" y2="${yy}" class="ff-grid"/>
+                <text x="${pad.left - 9}" y="${yy + 4}" text-anchor="end" class="ff-axis">${ffEsc(val.toFixed(opts.decimals ?? 0))}</text>
+            `;
+        }
+
+        let dots = "";
+        nums.forEach((v, i) => {
+            dots += `
+                <circle cx="${x(i)}" cy="${y(v)}" r="3.5" class="ff-dot"/>
+                <title>Round ${labels[i] || i}: ${ffEsc(v.toFixed(opts.decimals ?? 1))}</title>
+            `;
+        });
+
+        const every = Math.max(1, Math.ceil(labels.length / 6));
+        let xlabels = "";
+        labels.forEach((label, i) => {
+            if (i === 0 || i === labels.length - 1 || i % every === 0) {
+                xlabels += `<text x="${x(i)}" y="${height - 13}" text-anchor="middle" class="ff-axis">${ffEsc(label)}</text>`;
+            }
+        });
+
+        return `
+            <svg class="ff-chart" viewBox="0 0 ${width} ${height}" role="img">
+                <rect x="0" y="0" width="${width}" height="${height}" class="ff-chart-bg"/>
+                ${grid}
+                <polyline points="${points}" class="ff-line"/>
+                ${dots}
+                ${xlabels}
+            </svg>
+        `;
+    }
+
+    function ffBar(label, value, suffix = "") {
+        const v = ffClamp(value);
+        return `
+            <div class="ff-bar-row">
+                <div class="ff-bar-label"><span>${ffEsc(label)}</span><strong>${Math.round(v)}${suffix}</strong></div>
+                <div class="ff-bar-track"><div class="ff-bar-fill" style="width:${v}%"></div></div>
+            </div>
+        `;
+    }
+
+    function ffCard(label, value, note = "") {
+        return `
+            <div class="ff-stat">
+                <span>${ffEsc(label)}</span>
+                <strong>${ffEsc(value)}</strong>
+                ${note ? `<small>${ffEsc(note)}</small>` : ""}
+            </div>
+        `;
+    }
+
+    function ffInjectStyles() {
+        if (document.getElementById("ff-analytics-styles")) return;
+
+        const style = document.createElement("style");
+        style.id = "ff-analytics-styles";
+        style.textContent = `
+            .ff-page { max-width: 1240px; margin: 0 auto; padding: 34px 28px 60px; }
+            .ff-page-head { display:flex; justify-content:space-between; gap:24px; align-items:flex-end; margin-bottom:26px; }
+            .ff-page-head h2 { margin:4px 0 6px; font-size:clamp(28px,4vw,42px); }
+            .ff-page-head p { margin:0; opacity:.7; max-width:700px; line-height:1.55; }
+            .ff-back { border:1px solid currentColor; background:transparent; padding:10px 15px; border-radius:8px; cursor:pointer; }
+            .ff-grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
+            .ff-grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:18px; margin-bottom:18px; }
+            .ff-panel { border:1px solid rgba(127,127,127,.22); border-radius:14px; padding:20px; background:rgba(127,127,127,.035); }
+            .ff-panel h3 { margin:0 0 4px; font-size:18px; }
+            .ff-panel > p { margin:0 0 15px; opacity:.65; line-height:1.5; }
+            .ff-stat { border:1px solid rgba(127,127,127,.2); border-radius:12px; padding:17px; background:rgba(127,127,127,.035); }
+            .ff-stat span { display:block; font-size:11px; letter-spacing:.11em; opacity:.62; margin-bottom:7px; }
+            .ff-stat strong { font-size:25px; display:block; }
+            .ff-stat small { display:block; margin-top:5px; opacity:.58; }
+            .ff-chart { width:100%; height:auto; display:block; overflow:visible; }
+            .ff-chart-bg { fill:transparent; }
+            .ff-grid { stroke:currentColor; stroke-opacity:.10; stroke-width:1; }
+            .ff-axis { fill:currentColor; opacity:.5; font-size:10px; }
+            .ff-line { fill:none; stroke:currentColor; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+            .ff-dot { fill:currentColor; }
+            .ff-bar-row { margin:14px 0; }
+            .ff-bar-label { display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }
+            .ff-bar-track { height:8px; background:rgba(127,127,127,.16); border-radius:999px; overflow:hidden; }
+            .ff-bar-fill { height:100%; background:currentColor; border-radius:999px; }
+            .ff-table { width:100%; border-collapse:collapse; font-size:13px; }
+            .ff-table th,.ff-table td { text-align:left; padding:11px 8px; border-bottom:1px solid rgba(127,127,127,.14); }
+            .ff-table th { opacity:.58; font-size:10px; letter-spacing:.1em; text-transform:uppercase; }
+            .ff-positive { font-weight:700; }
+            .ff-negative { font-weight:700; }
+            .ff-callout { border-left:3px solid currentColor; padding:12px 15px; background:rgba(127,127,127,.06); line-height:1.55; }
+            .ff-chip { display:inline-block; padding:5px 8px; border:1px solid rgba(127,127,127,.2); border-radius:999px; font-size:10px; letter-spacing:.08em; margin:3px; }
+            @media (max-width:800px) {
+                .ff-grid-4 { grid-template-columns:repeat(2,1fr); }
+                .ff-grid-2 { grid-template-columns:1fr; }
+                .ff-page { padding:22px 15px 45px; }
+                .ff-page-head { align-items:flex-start; flex-direction:column; }
+            }
+            @media (max-width:480px) {
+                .ff-grid-4 { grid-template-columns:1fr; }
+                .ff-panel { padding:15px; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    /* -----------------------------------------------------
+       PAGE RENDERERS
+       ----------------------------------------------------- */
+
+    function ffHistory() {
+        return company.decisions.map(d => {
+            const snap = FF_ANALYTICS.snapshots.find(s => s.round === d.round);
+            return {
+                ...d,
+                snapshot: snap
+            };
+        });
+    }
+
+    function ffRoundLabels() {
+        return FF_ANALYTICS.snapshots.map(s => s.round === 0 ? "Start" : `R${s.round}`);
+    }
+
+    function showFinancialsPage() {
+        ffEnsureState();
+        ffInjectStyles();
+        FF_ANALYTICS.lastPage = "financials";
+
+        const s = FF_ANALYTICS.snapshots;
+        const d = ffDerived();
+
+        document.getElementById("dashboard-screen").innerHTML = `
+            <header class="game-header">
+                <div class="company-identity">
+                    <div class="company-mark">N</div>
+                    <div><strong>NOVA</strong><span>Chief Financial Officer</span></div>
+                </div>
+                <nav class="game-navigation">
+                    <button class="nav-item" onclick="showDashboardOverview()">Overview</button>
+                    <button class="nav-item active" onclick="showFinancialSummary()">Financials</button>
+                    <button class="nav-item" onclick="showStrategySummary()">Strategy</button>
+                    <button class="nav-item" onclick="showRiskSummary()">Risk</button>
+                </nav>
+                <div class="round-indicator">
+                    <strong>ROUND ${String(company.round).padStart(2,"0")} / ${company.totalRounds}</strong>
+                    <span>Financial analysis</span>
+                </div>
+            </header>
+            <main class="ff-page">
+                <div class="ff-page-head">
+                    <div>
+                        <span class="section-label">FINANCIALS</span>
+                        <h2>The numbers behind your decisions.</h2>
+                        <p>Every point below is recalculated from Nova's persistent state. Trends update after each decision.</p>
+                    </div>
+                    <button class="ff-back" onclick="showDashboardOverview()">← Overview</button>
+                </div>
+
+                <section class="ff-grid-4">
+                    ${ffCard("Revenue", `$${company.revenue.toFixed(1)}M`, "current")}
+                    ${ffCard("Gross Margin", `${Math.round(company.grossMargin)}%`, "current")}
+                    ${ffCard("EBITDA", `${d.ebitdaMargin.toFixed(1)}%`, `$${d.ebitda.toFixed(2)}M estimated`)}
+                    ${ffCard("Free Cash Flow", `${d.fcf >= 0 ? "+" : ""}$${d.fcf.toFixed(2)}M`, "estimated current period")}
+                </section>
+
+                <section class="ff-grid-2">
+                    <div class="ff-panel">
+                        <h3>Revenue trajectory</h3>
+                        <p>Annualized revenue across decisions.</p>
+                        ${ffChart(s.map(x=>x.revenue), ffRoundLabels(), {decimals:1})}
+                    </div>
+                    <div class="ff-panel">
+                        <h3>Profitability & gross margin</h3>
+                        <p>Profitability score and gross margin trend.</p>
+                        ${ffChart(s.map(x=>x.grossMargin), ffRoundLabels(), {decimals:0})}
+                        ${ffChart(s.map(x=>x.ebitdaMargin), ffRoundLabels(), {decimals:1})}
+                    </div>
+                </section>
+
+                <section class="ff-grid-2">
+                    <div class="ff-panel">
+                        <h3>Cash vs. debt</h3>
+                        <p>Balance-sheet flexibility over the simulation.</p>
+                        ${ffChart(s.map(x=>x.cash), ffRoundLabels(), {decimals:1})}
+                        ${ffChart(s.map(x=>x.debt), ffRoundLabels(), {decimals:1})}
+                    </div>
+                    <div class="ff-panel">
+                        <h3>Liquidity & runway</h3>
+                        <p>Liquidity score and estimated months of runway.</p>
+                        ${ffChart(s.map(x=>x.liquidity), ffRoundLabels(), {decimals:0})}
+                        ${ffChart(s.map(x=>x.runway), ffRoundLabels(), {decimals:1})}
+                    </div>
+                </section>
+
+                <section class="ff-grid-2">
+                    <div class="ff-panel">
+                        <h3>Free cash flow</h3>
+                        <p>Estimated FCF after investment, debt service and working-capital drag.</p>
+                        ${ffChart(s.map(x=>x.fcf), ffRoundLabels(), {decimals:2, zeroBaseline:true})}
+                    </div>
+                    <div class="ff-panel">
+                        <h3>Days sales outstanding</h3>
+                        <p>Working-capital efficiency. Lower is generally better.</p>
+                        ${ffChart(s.map(x=>x.dso), ffRoundLabels(), {decimals:0})}
+                    </div>
+                </section>
+
+                <section class="ff-panel">
+                    <h3>Decision ledger</h3>
+                    <p>What you actually did and what the company looked like afterward.</p>
+                    <table class="ff-table">
+                        <thead><tr><th>Round</th><th>Decision</th><th>Cash</th><th>Revenue</th><th>Margin</th><th>Debt</th><th>FCF</th></tr></thead>
+                        <tbody>
+                            ${ffHistory().map(h => {
+                                const x = h.snapshot;
+                                return `<tr>
+                                    <td>R${h.round}</td>
+                                    <td><strong>${ffEsc(h.choice)}</strong></td>
+                                    <td>$${x ? x.cash.toFixed(1) : "—"}M</td>
+                                    <td>$${x ? x.revenue.toFixed(1) : "—"}M</td>
+                                    <td>${x ? Math.round(x.grossMargin) : "—"}%</td>
+                                    <td>$${x ? x.debt.toFixed(1) : "—"}M</td>
+                                    <td>${x ? (x.fcf >= 0 ? "+" : "") + x.fcf.toFixed(2) : "—"}M</td>
+                                </tr>`;
+                            }).join("")}
+                        </tbody>
+                    </table>
+                </section>
+            </main>
+        `;
+    }
+
+    function showStrategyPage() {
+        ffEnsureState();
+        ffInjectStyles();
+        FF_ANALYTICS.lastPage = "strategy";
+        const s = FF_ANALYTICS.snapshots;
+
+        document.getElementById("dashboard-screen").innerHTML = `
+            <header class="game-header">
+                <div class="company-identity">
+                    <div class="company-mark">N</div>
+                    <div><strong>NOVA</strong><span>Chief Financial Officer</span></div>
+                </div>
+                <nav class="game-navigation">
+                    <button class="nav-item" onclick="showDashboardOverview()">Overview</button>
+                    <button class="nav-item" onclick="showFinancialSummary()">Financials</button>
+                    <button class="nav-item active" onclick="showStrategySummary()">Strategy</button>
+                    <button class="nav-item" onclick="showRiskSummary()">Risk</button>
+                </nav>
+                <div class="round-indicator">
+                    <strong>ROUND ${String(company.round).padStart(2,"0")} / ${company.totalRounds}</strong>
+                    <span>Strategic analysis</span>
+                </div>
+            </header>
+            <main class="ff-page">
+                <div class="ff-page-head">
+                    <div>
+                        <span class="section-label">STRATEGY</span>
+                        <h2>Where are you taking Nova?</h2>
+                        <p>Strategy is measured as a trajectory, not a single final score.</p>
+                    </div>
+                    <button class="ff-back" onclick="showDashboardOverview()">← Overview</button>
+                </div>
+
+                <section class="ff-grid-4">
+                    ${ffCard("Growth trajectory", `${Math.round(company.growth)}`, "growth score")}
+                    ${ffCard("Strategic position", `${Math.round(company.strategicPosition)}`, "cumulative")}
+                    ${ffCard("Long-term value", `${Math.round(company.longTermValue)}`, "cumulative")}
+                    ${ffCard("Capital efficiency", `${Math.round(company.capitalEfficiency)}`, "behavioral")}
+                </section>
+
+                <section class="ff-grid-2">
+                    <div class="ff-panel">
+                        <h3>Growth trajectory</h3>
+                        <p>How aggressively Nova's growth position changed.</p>
+                        ${ffChart(s.map(x=>x.growth), ffRoundLabels(), {decimals:0})}
+                    </div>
+                    <div class="ff-panel">
+                        <h3>Strategic position</h3>
+                        <p>Compounded effect of strategic choices.</p>
+                        ${ffChart(s.map(x=>x.strategicPosition), ffRoundLabels(), {decimals:0})}
+                    </div>
+                </section>
+
+                <section class="ff-grid-2">
+                    <div class="ff-panel">
+                        <h3>Long-term value</h3>
+                        <p>Balance of long-term orientation, capital efficiency and sustainable growth.</p>
+                        ${ffChart(s.map(x=>x.longTermValue), ffRoundLabels(), {decimals:0})}
+                    </div>
+                    <div class="ff-panel">
+                        <h3>Capital allocation behavior</h3>
+                        ${ffBar("Capital efficiency", company.capitalEfficiency)}
+                        ${ffBar("Growth appetite", company.growthAppetite)}
+                        ${ffBar("Strategic aggression", company.strategicAggression)}
+                        ${ffBar("Long-term orientation", company.longTermOrientation)}
+                    </div>
+                </section>
+
+                <section class="ff-panel">
+                    <h3>Decision history</h3>
+                    <p>Your strategic pattern by round.</p>
+                    <table class="ff-table">
+                        <thead><tr><th>Round</th><th>Situation</th><th>Choice</th><th>Strategic effect</th></tr></thead>
+                        <tbody>
+                            ${company.decisions.map(d => `<tr>
+                                <td>R${d.round}</td>
+                                <td>${ffEsc(d.scenario)}</td>
+                                <td><strong>${ffEsc(d.choiceLetter)} · ${ffEsc(d.choice)}</strong></td>
+                                <td>${d.effects && d.effects.strategicThinking > 0 ? "+" : ""}${Math.round(d.effects?.strategicThinking || 0)}</td>
+                            </tr>`).join("")}
+                        </tbody>
+                    </table>
+                </section>
+            </main>
+        `;
+    }
+
+    function showRiskPage() {
+        ffEnsureState();
+        ffInjectStyles();
+        FF_ANALYTICS.lastPage = "risk";
+        const s = FF_ANALYTICS.snapshots;
+        const d = ffDerived();
+
+        const overallRisk = ffClamp(
+            company.risk * .42 +
+            d.leverageRisk * .14 +
+            d.liquidityRisk * .18 +
+            d.operationalRisk * .10 +
+            d.executionRisk * .10 +
+            d.cyberRisk * .06
+        );
+
+        document.getElementById("dashboard-screen").innerHTML = `
+            <header class="game-header">
+                <div class="company-identity">
+                    <div class="company-mark">N</div>
+                    <div><strong>NOVA</strong><span>Chief Financial Officer</span></div>
+                </div>
+                <nav class="game-navigation">
+                    <button class="nav-item" onclick="showDashboardOverview()">Overview</button>
+                    <button class="nav-item" onclick="showFinancialSummary()">Financials</button>
+                    <button class="nav-item" onclick="showStrategySummary()">Strategy</button>
+                    <button class="nav-item active" onclick="showRiskSummary()">Risk</button>
+                </nav>
+                <div class="round-indicator">
+                    <strong>ROUND ${String(company.round).padStart(2,"0")} / ${company.totalRounds}</strong>
+                    <span>Risk analysis</span>
+                </div>
+            </header>
+            <main class="ff-page">
+                <div class="ff-page-head">
+                    <div>
+                        <span class="section-label">RISK</span>
+                        <h2>What can break the company?</h2>
+                        <p>Exposure and risk-management capability are tracked separately.</p>
+                    </div>
+                    <button class="ff-back" onclick="showDashboardOverview()">← Overview</button>
+                </div>
+
+                <section class="ff-grid-4">
+                    ${ffCard("Overall risk", `${Math.round(overallRisk)}`, "exposure")}
+                    ${ffCard("Liquidity risk", `${Math.round(d.liquidityRisk)}`, "higher = worse")}
+                    ${ffCard("Leverage risk", `${Math.round(d.leverageRisk)}`, "higher = worse")}
+                    ${ffCard("Risk management", `${Math.round(company.riskManagement)}`, "capability")}
+                </section>
+
+                <section class="ff-grid-2">
+                    <div class="ff-panel">
+                        <h3>Overall risk exposure</h3>
+                        <p>Persistent exposure across the simulation.</p>
+                        ${ffChart(s.map(x=>x.risk), ffRoundLabels(), {decimals:0})}
+                    </div>
+                    <div class="ff-panel">
+                        <h3>Risk-management profile</h3>
+                        ${ffBar("Risk management capability", company.riskManagement)}
+                        ${ffBar("Risk-management trait", company.riskManagementTrait)}
+                        ${ffBar("Liquidity discipline", company.liquidityDiscipline)}
+                        ${ffBar("Operational decisiveness", company.operationalDecisiveness)}
+                    </div>
+                </section>
+
+                <section class="ff-grid-2">
+                    <div class="ff-panel">
+                        <h3>Liquidity risk</h3>
+                        <p>Low liquidity creates vulnerability even when accounting performance looks strong.</p>
+                        ${ffChart(s.map(x=>x.liquidity), ffRoundLabels(), {decimals:0})}
+                    </div>
+                    <div class="ff-panel">
+                        <h3>Leverage risk</h3>
+                        <p>Debt exposure relative to Nova's scale.</p>
+                        ${ffChart(s.map(x=>x.debt / Math.max(x.revenue,1) * 100), ffRoundLabels(), {decimals:1})}
+                    </div>
+                </section>
+
+                <section class="ff-grid-2">
+                    <div class="ff-panel">
+                        <h3>Operational & execution risk</h3>
+                        <p>Current operating fragility and execution pressure.</p>
+                        ${ffChart(s.map(x=>x.risk * .45 + (100-x.profitability)*.3 + (100-x.capitalEfficiency)*.25), ffRoundLabels(), {decimals:0})}
+                    </div>
+                    <div class="ff-panel">
+                        <h3>Cyber risk</h3>
+                        <p>Persistent cybersecurity exposure based on the security decisions you made.</p>
+                        ${ffChart(s.map(x=>x.riskManagementTrait < 45 ? x.risk + 10 : x.risk), ffRoundLabels(), {decimals:0})}
+                    </div>
+                </section>
+
+                <div class="ff-callout">
+                    <strong>Important distinction:</strong> a high-risk CFO is not automatically a bad CFO. The simulation rewards appropriate risk-taking and penalizes unmanaged exposure.
+                </div>
+            </main>
+        `;
+    }
+
+    function showDashboardOverview() {
+        if (!FF_ANALYTICS.overviewHTML) return;
+        document.getElementById("dashboard-screen").innerHTML = FF_ANALYTICS.overviewHTML;
+        FF_ANALYTICS.lastPage = "overview";
+        updateDashboard();
+    }
+
+    /* -----------------------------------------------------
+       WHAT-IF ANALYSIS
+       ----------------------------------------------------- */
+
+    function ffWhatIf() {
+        const scores = {
+            current: ffDerived(),
+            conservative: null,
+            growth: null
+        };
+
+        const base = {
+            cash: company.cash,
+            revenue: company.revenue,
+            debt: company.debt,
+            grossMargin: company.grossMargin,
+            profitability: company.profitability,
+            growth: company.growth,
+            risk: company.risk
+        };
+
+        /* Meaningful counterfactuals based on actual decision history:
+           conservative = replace aggressive choices with the least
+           cash-consuming option; growth = replace conservative choices
+           with the highest growth option. */
+        let conservativeCash = base.cash;
+        let growthRevenue = base.revenue;
+        let conservativeRisk = base.risk;
+        let growthRisk = base.risk;
+
+        company.decisions.forEach(d => {
+            const scenario = scenarios[d.round - 1];
+            if (!scenario) return;
+
+            const opts = scenario.options || [];
+            const selected = opts.find(o => o.letter === d.choiceLetter);
+            if (!selected) return;
+
+            const leastCash = opts.reduce((a,b) =>
+                ffNumber(a.effects?.cash) > ffNumber(b.effects?.cash) ? b : a, opts[0]);
+
+            const highestGrowth = opts.reduce((a,b) =>
+                ffNumber(a.effects?.revenueGrowth) > ffNumber(b.effects?.revenueGrowth) ? a : b, opts[0]);
+
+            if (leastCash) {
+                conservativeCash += ffNumber(leastCash.effects?.cash) - ffNumber(selected.effects?.cash);
+                conservativeRisk += ffNumber(leastCash.effects?.risk) - ffNumber(selected.effects?.risk);
+            }
+
+            if (highestGrowth) {
+                growthRevenue *= 1 + (
+                    (ffNumber(highestGrowth.effects?.revenueGrowth) -
+                     ffNumber(selected.effects?.revenueGrowth)) / 100
+                );
+                growthRisk += ffNumber(highestGrowth.effects?.risk) - ffNumber(selected.effects?.risk);
+            }
+        });
+
+        scores.conservative = {
+            cash: Math.max(.05, conservativeCash),
+            risk: ffClamp(conservativeRisk)
+        };
+
+        scores.growth = {
+            revenue: growthRevenue,
+            risk: ffClamp(growthRisk)
+        };
+
+        return scores;
+    }
+
+    function ffPopulateResults() {
+        const w = ffWhatIf();
+        const d = ffDerived();
+
+        const section = document.querySelector(".what-if-section");
+        if (!section) return;
+
+        let box = document.getElementById("ff-what-if-results");
+        if (!box) {
+            box = document.createElement("div");
+            box.id = "ff-what-if-results";
+            box.style.marginTop = "20px";
+            section.appendChild(box);
+        }
+
+        box.innerHTML = `
+            <div class="ff-grid-2">
+                <div class="ff-panel">
+                    <h3>Your actual path</h3>
+                    <p>$${company.cash.toFixed(1)}M cash · $${company.revenue.toFixed(1)}M revenue · ${Math.round(company.risk)} risk</p>
+                </div>
+                <div class="ff-panel">
+                    <h3>If you had leaned more conservative</h3>
+                    <p>$${w.conservative.cash.toFixed(1)}M estimated cash · ${Math.round(w.conservative.risk)} estimated risk</p>
+                </div>
+            </div>
+            <div class="ff-panel">
+                <h3>If you had maximized growth opportunities</h3>
+                <p>$${w.growth.revenue.toFixed(1)}M estimated revenue · ${Math.round(w.growth.risk)} estimated risk</p>
+            </div>
+        `;
+    }
+
+    /* -----------------------------------------------------
+       RESET / START WRAPPERS
+       ----------------------------------------------------- */
+
+    const legacyStart = window.startSimulation;
+    const legacyRestart = window.restartSimulation;
+    const legacyMakeDecision = window.makeDecision;
+
+    function ffResetAnalytics() {
+        FF_ANALYTICS.snapshots = [];
+        FF_ANALYTICS.delayed = [];
+        ffEnsureState();
+    }
+
+    window.startSimulation = function () {
+        legacyStart();
+        ffResetAnalytics();
+        ffCaptureSnapshot(0, "opening");
+    };
+
+    window.restartSimulation = function () {
+        legacyRestart();
+        ffResetAnalytics();
+        ffCaptureSnapshot(0, "opening");
+    };
+
+    function ffCaptureSnapshot(round, label = "post-decision") {
+        ffEnsureState();
+        const snap = ffSnapshot(label);
+        snap.round = round;
+        FF_ANALYTICS.snapshots.push(snap);
+    }
+
+    /* -----------------------------------------------------
+       DECISION WRAPPER
+       ----------------------------------------------------- */
+
+    window.makeDecision = function (optionIndex) {
+        if (!currentScenario) currentScenario = getCurrentScenario();
+        const scenario = currentScenario;
+        const option = scenario && scenario.options ? scenario.options[optionIndex] : null;
+        if (!scenario || !option) return;
+
+        ffEnsureState();
+
+        /* Apply consequences due before the new decision. */
+        ffApplyDelayed(company.round);
+
+        const beforeRound = company.round;
+
+        /* Preserve the complete existing 18-scenario engine. */
+        legacyMakeDecision(optionIndex);
+
+        ffUpdateDerivedFromDecision(scenario, option);
+        ffScheduleConsequences(scenario, option);
+
+        /* The legacy engine records the decision before returning. */
+        const decision = company.decisions[company.decisions.length - 1];
+        if (decision) {
+            decision.analytics = {
+                dso: company.dso,
+                strategicPosition: company.strategicPosition,
+                longTermValue: company.longTermValue
+            };
+        }
+
+        ffCaptureSnapshot(beforeRound, "post-decision");
+
+        /* Keep the dashboard and analytical pages current. */
+        if (document.getElementById("dashboard-screen")?.classList.contains("active")) {
+            if (FF_ANALYTICS.lastPage === "financials") showFinancialsPage();
+            if (FF_ANALYTICS.lastPage === "strategy") showStrategyPage();
+            if (FF_ANALYTICS.lastPage === "risk") showRiskPage();
+        }
+    };
+
+    /* -----------------------------------------------------
+       NAVIGATION OVERRIDES
+       ----------------------------------------------------- */
+
+    window.showFinancialSummary = function () {
+        showFinancialsPage();
+    };
+
+    window.showStrategySummary = function () {
+        showStrategyPage();
+    };
+
+    window.showRiskSummary = function () {
+        showRiskPage();
+    };
+
+    /* -----------------------------------------------------
+       RESULTS ENHANCEMENT
+       ----------------------------------------------------- */
+
+    const legacyFinalReport = window.generateFinalReport;
+
+    window.generateFinalReport = function () {
+        if (typeof legacyFinalReport === "function") legacyFinalReport();
+
+        setTimeout(() => {
+            ffPopulateResults();
+
+            /* Add a compact 18-round financial trajectory to results. */
+            const results = document.querySelector(".results-container");
+            if (!results || document.getElementById("ff-final-trajectory")) return;
+
+            const d = ffDerived();
+            const block = document.createElement("section");
+            block.id = "ff-final-trajectory";
+            block.className = "ff-panel";
+            block.style.marginTop = "22px";
+
+            block.innerHTML = `
+                <span class="section-label">FINAL TRAJECTORY</span>
+                <h3 style="margin:5px 0 15px;">How Nova changed over 18 decisions</h3>
+                ${ffChart(FF_ANALYTICS.snapshots.map(x=>x.revenue), ffRoundLabels(), {decimals:1})}
+                <div class="ff-grid-4" style="margin-top:14px;">
+                    ${ffCard("Ending cash", `$${company.cash.toFixed(1)}M`)}
+                    ${ffCard("Ending debt", `$${company.debt.toFixed(1)}M`)}
+                    ${ffCard("EBITDA margin", `${d.ebitdaMargin.toFixed(1)}%`)}
+                    ${ffCard("DSO", `${Math.round(company.dso)} days`)}
+                </div>
+            `;
+            results.appendChild(block);
+        }, 0);
+    };
+
+    /* -----------------------------------------------------
+       DOM READY
+       ----------------------------------------------------- */
+
+    function ffBoot() {
+        ffInjectStyles();
+        ffEnsureState();
+
+        const dashboard = document.getElementById("dashboard-screen");
+        if (dashboard && !FF_ANALYTICS.overviewHTML) {
+            FF_ANALYTICS.overviewHTML = dashboard.innerHTML;
+            FF_ANALYTICS.overviewReady = true;
+        }
+
+        /* Initial state should be Start -> dashboard. */
+        if (!FF_ANALYTICS.snapshots.length) {
+            FF_ANALYTICS.snapshots.push({
+                ...ffSnapshot("opening"),
+                round: 0,
+                revenue: FF_BASELINE.revenue,
+                grossMargin: FF_BASELINE.grossMargin,
+                debt: FF_BASELINE.debt,
+                cash: FF_BASELINE.cash,
+                dso: FF_BASELINE.dso
+            });
+        }
+
+        /* Patch old 15-round text anywhere it survives. */
+        document.querySelectorAll("*").forEach(el => {
+            if (el.children.length === 0 && el.textContent.includes("15")) {
+                el.textContent = el.textContent.replace(/15/g, "18");
+            }
+        });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", ffBoot);
+    } else {
+        ffBoot();
+    }
+
+    window.showDashboardOverview = showDashboardOverview;
+
+})();
