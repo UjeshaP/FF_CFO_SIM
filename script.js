@@ -3403,14 +3403,35 @@ function showScreen(screenId) {
 
     screens.forEach(screen => {
         screen.classList.remove("active");
-        screen.style.display = "none";
+        screen.classList.add("screen-hidden");
     });
 
+    target.classList.remove("screen-hidden");
     target.classList.add("active");
-    target.style.display = "block";
 
-    // Always begin the active screen at the top
-    window.scrollTo(0, 0);
+    // Only scroll after the target screen has been selected
+    requestAnimationFrame(() => {
+        window.scrollTo({
+            top: 0,
+            left: 0,
+            behavior: "instant"
+        });
+    });
+}
+
+function enterSimulation() {
+
+    const landing = document.getElementById("landing-screen");
+
+    if (landing) {
+        landing.classList.remove("active");
+        landing.classList.add("screen-hidden");
+
+        // Completely remove the landing page from the layout.
+        landing.style.display = "none";
+    }
+
+    showScreen("company-screen");
 }
 
 
